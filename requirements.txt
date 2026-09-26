@@ -1,0 +1,11 @@
+# Dependencias de runtime para instalar con pip + venv.
+# Generado desde uv.lock — mantener sincronizado con pyproject.toml.
+#
+#   pip install -r requirements.txt
+#
+# Bootstrap 5.3.8 NO va aquí: sus archivos están vendorizados en
+# core/static/core/{css,js} para que el proyecto funcione sin CDN.
+
+asgiref==3.12.1
+django==6.1.1
+sqlparse==0.6.0
