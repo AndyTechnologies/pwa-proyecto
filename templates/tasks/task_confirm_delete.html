@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% comment %}
+  Confirmación del borrado. La vista (TaskDeleteView) ya verificó que la tarea
+  es del usuario; acá sólo se confirma y se ejecuta el POST.
+  Contexto: task.
+{% endcomment %}
+
+{% block title %}Eliminar tarea · Gestor de tareas{% endblock %}
+
+{% block content %}
+
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-7">
+      <div class="card border-danger shadow-sm">
+        <div class="card-body">
+          <h1 class="h4 card-title text-danger mb-3">¿Eliminar esta tarea?</h1>
+          <p class="card-text">Vas a eliminar de forma permanente la tarea:</p>
+          <p class="fw-semibold fs-5">{{ task.title }}</p>
+          <p class="text-body-secondary small mb-0">
+            Esta acción no se puede deshacer: la tarea y sus etiquetas se borran definitivamente.
+          </p>
+        </div>
+        <div class="card-footer bg-transparent d-flex flex-wrap gap-2">
+          <form method="post" action="{% url 'tasks:task-delete' task.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+          </form>
+          <a class="btn btn-outline-secondary" href="{% url 'tasks:task-detail' task.pk %}">Cancelar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
