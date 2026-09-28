@@ -197,19 +197,19 @@ class AnonymousWritePolicyTests(VisibilityMatrixTestCase):
         response = self.client.get(self.task_list_url())
 
         self.assertEqual(response.status_code, 302)
-        self.assertIn(reverse("login"), response.url)
+        self.assertEqual(response.url, f"{reverse('login')}?next={self.task_list_url()}")
 
     def test_anonymous_is_redirected_from_the_create_page(self):
         response = self.client.get(self.task_create_url())
 
         self.assertEqual(response.status_code, 302)
-        self.assertIn(reverse("login"), response.url)
+        self.assertEqual(response.url, f"{reverse('login')}?next={self.task_create_url()}")
 
     def test_anonymous_is_redirected_from_the_shared_list(self):
         response = self.client.get(self.shared_list_url())
 
         self.assertEqual(response.status_code, 302)
-        self.assertIn(reverse("login"), response.url)
+        self.assertEqual(response.url, f"{reverse('login')}?next={self.shared_list_url()}")
 
     def test_anonymous_is_redirected_when_posting_a_new_task(self):
         response = self.client.post(self.task_create_url(), {"title": "Intrusa"})

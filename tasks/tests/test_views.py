@@ -191,7 +191,7 @@ class TaskListViewTests(TaskFactoryTestCase):
         response = self.client.get(self.task_list_url())
 
         self.assertEqual(response.status_code, 302)
-        self.assertIn(reverse("login"), response.url)
+        self.assertEqual(response.url, f"{reverse('login')}?next={self.task_list_url()}")
 
     def test_the_list_renders_for_its_owner(self):
         self.login(self.user)

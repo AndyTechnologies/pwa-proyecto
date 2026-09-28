@@ -102,6 +102,13 @@ LANGUAGE_CODE = 'es'
 
 TIME_ZONE = 'UTC'
 
+# Auth redirects must name a route this project actually declares. Django's
+# defaults are "/accounts/login/" and "/accounts/profile/", neither of which is
+# routed here, so a successful login and every LoginRequiredMixin redirect both
+# landed on a 404. Covered by tasks/tests/test_regressions.py.
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'tasks:task-list'
+
 # Django 5+ requires POST for logout, so the nav must render a form. After
 # logging out there is no useful "/" route, so send the user to the login page.
 LOGOUT_REDIRECT_URL = 'login'

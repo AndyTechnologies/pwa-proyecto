@@ -345,3 +345,104 @@ class UrlMountingRegressions(TaskFactoryTestCase):
             self.client.get(f"/tasks/{self.task.pk}/").status_code,
             200,
         )
+
+
+class AuthRedirectRegressions(TaskFactoryTestCase):
+    """Defect 8: ``LOGIN_URL`` and ``LOGIN_REDIRECT_URL`` were never set.
+
+    Both fell back to Django's defaults, ``/accounts/login/`` and
+    ``/accounts/profile/``, and this project routes neither. So a successful
+    login redirected to ``/accounts/profile/`` (404) and every
+    ``LoginRequiredMixin`` page redirected an anonymous visitor to
+    ``/accounts/login/?next=...`` (404).
+
+    The permission tests missed it because they asserted
+    ``assertIn(reverse("login"), response.url)``, and ``/login/`` is a
+    substring of the wrong ``/accounts/login/?next=/tasks/``. These tests
+    compare the whole URL, so the bad path cannot pass.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.make_user("defecto8-owner")
+
+    def test_login_url_resolves_to_a_real_route(self):
+        response = self.client.get(self.task_list_url())
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f"{reverse('login')}?next={self.task_list_url()}")
+        # The redirect target must actually render, not answer 404.
+        self.assertEqual(self.client.get(response.url).status_code, 200)
+
+    def test_a_successful_login_lands_on_a_real_page(self):
+        response = self.client.post(
+            reverse("login"),
+            {"username": self.user.username, "password": STRONG_PASSWORD},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("tasks:task-list"))
+        self.assertEqual(self.client.get(response.url).status_code, 200)
+
+    def test_registering_does_not_reintroduce_a_dead_redirect(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "defecto8-nuevo",
+                "password1": STRONG_PASSWORD,
+                "password2": STRONG_PASSWORD,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.get(response.url).status_code, 200)
+
+
+class HomeRouteTests(TaskFactoryTestCase):
+    """``/`` is the front door: it must never answer 404.
+
+    An anonymous visitor is sent to the login page; an authenticated one is
+    sent straight to their task list.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.make_user("inicio")
+
+    def test_root_is_not_a_404(self):
+        self.assertNotEqual(self.client.get("/").status_code, 404)
+
+    def test_anonymous_is_sent_to_the_login_page(self):
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("login"))
+        # And the login page it lands on really renders.
+        self.assertEqual(self.client.get(response.url).status_code, 200)
+
+    def test_authenticated_is_sent_to_the_task_list(self):
+        self.login(self.user)
+
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("tasks:task-list"))
+        self.assertEqual(self.client.get(response.url).status_code, 200)
+
+    def test_the_redirect_does_not_loose_the_session(self):
+        # A temporary redirect must not be cached as permanent by a browser.
+        self.login(self.user)
+
+        self.assertEqual(self.client.get("/").status_code, 302)
+
+    def test_root_reaches_a_real_page_end_to_end(self):
+        # The full journey: / -> login -> tasks, with no 404 anywhere.
+        landing = self.client.get("/")
+        self.assertEqual(landing.status_code, 302)
+
+        logged_in = self.client.post(
+            landing.url,
+            {"username": self.user.username, "password": STRONG_PASSWORD},
+        )
+        self.assertEqual(logged_in.status_code, 302)
+        self.assertEqual(self.client.get(logged_in.url).status_code, 200)

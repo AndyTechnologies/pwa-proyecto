@@ -12,7 +12,7 @@ from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.text import slugify
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView, View
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, RedirectView, UpdateView, View
 
 from .forms import RegisterForm, TaskForm
 from .models import Tag, Task, Visibility
@@ -37,6 +37,26 @@ STATUS_FILTERS = {
     "completed": True,
 }
 DEFAULT_STATUS = "all"
+
+
+class HomeRedirectView(RedirectView):
+    """Entry point for ``/`` — the app's front door.
+
+    ``/`` used to 404, so the first thing a visitor saw was Django's error
+    page. It now decides where to send them by session state: an authenticated
+    user goes to their task list, an anonymous one goes to the login page (from
+    which, after signing in, ``LOGIN_REDIRECT_URL`` continues to the task list).
+
+    A non-permanent redirect is deliberate: this is a routing decision that
+    depends on who is asking, not a permanent move of the URL.
+    """
+
+    permanent = False
+
+    def get_redirect_url(self, *args, **kwargs):
+        if self.request.user.is_authenticated:
+            return reverse("tasks:task-list")
+        return reverse("login")
 
 
 class RegisterView(CreateView):
