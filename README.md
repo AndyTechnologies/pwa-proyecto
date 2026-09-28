@@ -75,16 +75,38 @@ Desactivar el entorno al terminar con `deactivate`.
 
 Ambas opciones llevan al mismo servidor en <http://127.0.0.1:8000/>.
 
+### Atajo — `./run.sh`
+
+En lugar del comando completo, el script `run.sh` resuelve el puerto y arranca el
+servidor. Desde la raíz del proyecto:
+
+```bash
+./run.sh              # arranca en el primer puerto libre desde 8000
+./run.sh 9000         # usa 9000; si está ocupado, falla con un mensaje claro
+./run.sh --port 9000  # misma forma, explícita
+./run.sh --help
+```
+
+Sin argumentos, prueba 8000, 8001, 8002… y toma el primero libre, porque Django
+aborta con *"That port is already in use"* y un proceso olvidado del run anterior
+es el caso habitual. Con un puerto explícito no salta al siguiente en silencio: si
+ese puerto está ocupado, avisa y termina, porque si pedís 9000 es porque querés
+9000.
+
+El script funciona desde cualquier directorio (busca la raíz del proyecto) y
+necesita `uv` en el `PATH`; si no lo encuentra, cae al Python activo.
+
 ## Uso
 
-1. Registrarse en `/register/`.
-2. Iniciar sesión en `/login/`.
-3. Crear una tarea en `/tasks/create/`.
-4. Filtrar y ordenar desde `/tasks/` con los controles del listado.
-5. Compartir: desde la edición de una tarea, elegir **Compartida con registradas**
+1. Entrar a `/`: si ya iniciaste sesión vas a `/tasks/`, si no, a `/login/`.
+2. Registrarse en `/register/`.
+3. Iniciar sesión en `/login/`.
+4. Crear una tarea en `/tasks/create/`.
+5. Filtrar y ordenar desde `/tasks/` con los controles del listado.
+6. Compartir: desde la edición de una tarea, elegir **Compartida con registradas**
    (cualquier usuario autenticado la ve) o **Pública** (también los visitantes
    anónimos).
-6. Ver lo compartido con uno mismo en `/tasks/shared/` y lo público en `/tasks/public/`.
+7. Ver lo compartido con uno mismo en `/tasks/shared/` y lo público en `/tasks/public/`.
 
 El cierre de sesión es un formulario `POST`, no un enlace: Django 5 eliminó el cierre por
 `GET` por razones de seguridad.
