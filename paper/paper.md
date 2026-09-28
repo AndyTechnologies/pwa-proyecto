@@ -690,3 +690,562 @@ Tras cada operación —crear, editar, completar, eliminar, registrarse— la ap
 muestra un mensaje de resultado. Los mensajes de éxito y error tienen estilos distintos,
 de modo que el usuario sabe si la operación ocurrió.
 
+## 8. Implementación
+
+### 8.1 Modelos
+
+El modelo `Task` declara el propietario como clave foránea al modelo de usuario de
+Django, con eliminación en cascada: si un usuario se elimina, sus tareas se eliminan
+también. Los cuatro campos exigidos por la consigna —título, descripción, fecha de
+vencimiento y prioridad— son obligatorios. El campo de fecha es de tipo fecha sin hora,
+porque una tarea "vence" en un día, no en un instante.
+
+El modelo `Tag` lleva un nombre único y un *slug* único derivado automáticamente. El
+nombre único impide que existan dos etiquetas que se diferencien solo por mayúsculas,
+cosa que sería confusa para el usuario. El slug se usa internamente para el filtrado por
+etiqueta, de modo que las direcciones no dependen de caracteres problemáticos.
+
+Las dos políticas de autorización se implementan como métodos de un `QuerySet`
+personalizado, que es la pieza estructural más importante del proyecto:
+
+```python
+class TaskQuerySet(models.QuerySet):
+    def owned_by(self, user):
+        return self.filter(owner=user)
+
+    def visible_to(self, user):
+        if not user.is_authenticated:
+            return self.filter(visibility=Visibility.PUBLIC)
+        return self.filter(
+            Q(owner=user)
+            | Q(visibility__in=[Visibility.AUTHENTICATED, Visibility.PUBLIC])
+        )
+```
+
+### 8.2 Formularios
+
+El formulario de tarea es un `ModelForm` sobre los campos del modelo, con una
+excepción: las etiquetas se editan en un único campo de texto con nombres separados por
+comas, en lugar de un selector múltiple.
+
+La razón es de usabilidad. La consigna pide que las etiquetas se asignen y que se
+puedan buscar, y un usuario real necesita dos cosas a la vez: reutilizar una etiqueta
+que ya existe e inventar una nueva. Un selector múltiple obliga a dos gestos y dos
+interfaces distintas; un campo de texto permite ambas cosas en uno, escribiendo
+`universidad, trabajo`. La resolución a objetos `Tag` ocurre al guardar, porque un
+`ModelForm` no puede persistir una relación muchos a muchos a partir de un campo de
+texto corriente.
+
+La limpieza de ese campo normaliza la entrada: recorta espacios, descarta segmentos
+vacíos, pasa todo a minúsculas para que la reutilización sea insensible a mayúsculas,
+elimina duplicados dentro de la misma entrada y rechaza nombres que excedan el límite
+del modelo. La resolución busca primero por nombre —sin distinguir mayúsculas— y, si no
+lo encuentra, por *slug*.
+
+Esa segunda búsqueda no es un detalle defendativo sino una corrección necesaria. Al
+desarrollar el proyecto se descubrió que dos nombres distintos que producen el mismo
+*slug* —"Python 3" y "python-3"— colisionaban contra la restricción de unicidad y
+producían un error de integridad que convertía el formulario en una respuesta de error
+interna. La búsqueda por *slug* evita la colisión reutilizando la etiqueta existente.
+
+El formulario de registro hereda de `UserCreationForm`, que aporta la comprobación de
+coincidencia de contraseñas y los cuatro validadores de robustez.
+
+### 8.3 Vistas
+
+Las nueve vistas son clases. La más relevante para el diseño del sistema es el listado,
+porque concentra las cuatro responsabilidades que la consigna pide separar:
+
+```python
+def get_queryset(self):
+    queryset = Task.objects.owned_by(self.request.user).prefetch_related("tags")
+    # ... filtro de estado, de etiqueta y ordenamiento
+    return queryset.order_by(*ALLOWED_SORTS[self.sort], *SORT_TIE_BREAKER)
+```
+
+La primera línea no es negociable: es la que impide que una tarea ajena entre en el
+proceso. El resto sonTransformaciones sobre un conjunto ya acotado.
+
+Las vistas de detalle resuelven el objeto a través de un queryset restringido por la
+política de lectura, y devuelven además una variable `is_owner` que la plantilla usa
+para ocultar las acciones que el visitante no puede ejercer. Esa variable es una ayuda
+de presentación, no un control: si la plantilla la ignorara por completo, el sistema
+seguiría siendo seguro.
+
+La alternancia del estado de completitud es una vista de clase que declara
+`http_method_names = ["post"]`. Negarse a implementar un manejador para otros verbos hace
+que Django responda automáticamente `405 Method Not Allowed`.
+
+### 8.4 Plantillas
+
+Todas las plantillas extienden una base que define la estructura, la barra de
+navegación y la zona de mensajes. El panel de la aplicación incluye la barra de
+navegación, el área de mensajes y el contenedor principal. No hay ni una repetición de
+la barra de navegación entre plantillas.
+
+Las operaciones que modifican datos se expresan siempre con formularios y token de
+verificación, nunca con enlaces: la alternancia de completitud, el borrado y el cierre
+de sesión. Los enlaces se reservan para las operaciones de lectura.
+
+### 8.5 Administración de Django
+
+Ambos modelos están registrados y configurados para ser útiles más que meramente
+accesibles. La administración de tareas muestra en el listado el título, el propietario,
+la fecha, la prioridad, el estado, la visibilidad y las etiquetas; permite filtrar por
+estado, visibilidad, prioridad y fecha; busca por título, descripción y nombre de
+usuario; y usa una jerarquía de fechas para navegar por vencimientos. La administración
+de etiquetas muestra el número de tareas asociadas, y su campo de búsqueda es el que
+alimenta el autocompletado del selector de etiquetas.
+
+Esta configuración cumple el objetivo de la semana 5, que pedía modelos registrados en
+el sitio de administración, y además convierte a la administración en una herramienta
+de inspección real durante el desarrollo.
+
+## 9. Pruebas
+
+### 9.1 Estrategia
+
+La estrategia de pruebas se ajustó al riesgo. El sistema tiene dos clases de
+comportamiento muy distintas: la lógica de autorización, donde un error tiene
+consecuencias de seguridad, y la lógica de presentación, donde un error tiene
+consecuencias estéticas. Las pruebas se concentran donde el riesgo está.
+
+Se utilizan únicamente las herramientas nativas de Django: sin *pytest*, sin
+*factory_boy*, sin más dependencias. La consigna no justifica añadir dependencias de
+pruebas, y el gestor de pruebas integrado descubre y ejecuta automáticamente todo lo
+escrito bajo el paquete de pruebas de la aplicación.
+
+La suite contiene **249 pruebas**, todas en verde.
+
+| Archivo | Pruebas | Responsabilidad |
+| --- | --- | --- |
+| `test_models.py` | 33 | Valores por defecto, orden del metamodelo, *slug* de etiqueta, relación muchos a muchos, cascada |
+| `test_forms.py` | 56 | Campos obligatorios, tipos enumerados, limpieza y resolución de etiquetas |
+| `test_views.py` | 53 | Ciclo completo de creación, consulta, edición, borrado y completado |
+| `test_permissions.py` | 45 | Matriz de autorización, defensa contra IDOR, políticas de conjunto |
+| `test_filters.py` | 34 | Listas blancas, orden determinista, intentos de inyección |
+| `test_regressions.py` | 28 | Un archivo por defecto corregido |
+
+### 9.2 La matriz de autorización
+
+La prueba más importante del proyecto es la que verifica la matriz de acceso exigida por
+la consigna. Cada celda tiene al menos una aserción:
+
+| Actor | Tarea privada | Tarea compartida | Tarea pública |
+| --- | --- | --- | --- |
+| Anónimo | 404 | 404 | 200, solo lectura |
+| Registrado no propietario | 404 | 200, solo lectura | 200, solo lectura |
+| Propietario | Acceso completo | Acceso completo | Acceso completo |
+
+Las pruebas no se limitan a comprobar el código de respuesta del detalle. Verifican
+también las operaciones de escritura sobre tareas ajenas —edición, borrado y
+alternancia de completitud— y afirman de manera explícita que la respuesta es **404 y no
+403**, porque esa distinción es una decisión deliberada del diseño y no un accidente.
+
+### 9.3 Pruebas de las listas blancas
+
+Las pruebas de filtrado y ordenamiento incluyen entradas maliciosas como
+`?sort=owner; DROP TABLE tasks--`, `?sort=' or 1=1--` y `?status=INJECTED`. En todos los
+casos la prueba afirma que la página se responde con normalidad, que el criterio cae al
+valor por defecto y que el conjunto de tareas resultante es el esperado. Una prueba de
+este tipo no verifica solo que no haya excepción: verifica que el sistema **se comporta
+como si la entrada no existiera**.
+
+### 9.4 Pruebas de regresión
+
+Siete defectos se descubrieron durante el desarrollo, y cada uno tiene hoy un archivo de
+pruebas dedicado. La consigna lo exige, y la razón es que la corrección de un defecto
+sin una prueba que lo cubra es una corrección que se pierde en el siguiente refactor.
+
+| Defecto | Síntoma que producía |
+| --- | --- |
+| `is_editable_by` declarado como propiedad que recibía un argumento | Error de tipo en toda página de detalle |
+| `all_tags` consultando el conjunto equivocado por un campo inexistente | Error de campo en el listado principal |
+| Ruta de registro ausente | Error de resolución de URL en toda página anónima |
+| Vista de edición sin nombre de objeto contextual | El formulario de edición se anunciaba como «nueva tarea» |
+| Controles de formulario sin clases de estilo | Formularios sin apariencia |
+| Colisión de *slug* en etiquetas | Error de integridad al guardar |
+| Enrutamiento montado en la raíz y no bajo el prefijo | Las rutas de la consigna no existían |
+
+Los dos primeros merecen una reflexión, porque son errores de diseño y no de sintaxis.
+El primero declaraba una propiedad que recibía un argumento, lo cual es imposible: al
+acceder a una propiedad, el lenguaje llama a la función con la única instancia
+disponible, y la función requería además el usuario. El error no apareció en ninguna
+comprobación estática; se manifestó al ejecutar la página. El segundo consultaba un
+conjunto de tareas donde debía consultar uno de etiquetas, y lo solicitaba ordenado por
+un campo que las tareas no tienen. Ambos son el tipo de fallo que un análisis estático
+podría haber detectado y que sólo aparece al ejecutar el código con datos reales.
+
+### 9.5 Qué no se prueba, y por qué
+
+La honestidad sobre los límites de la propia verificación es parte de un trabajo
+académico.
+
+**No hay pruebas de carga ni de concurrencia.** El sistema está diseñado para el volumen
+de un curso; medir su comportamiento bajo miles de usuarios concurrentes carecería de
+sentido y exigiría herramientas que la consigna no justifica.
+
+**No hay pruebas extremo a extremo en navegador.** La suite opera con el cliente de
+pruebas de Django, que ejercita las vistas, los formularios y las consultas reales, pero
+no renderiza CSS ni ejecuta JavaScript. La consecuencia honesta es que la apariencia
+responsive se verificó por inspección manual a tres anchos, no de forma automatizada.
+
+**No hay pruebas de concurrencia sobre la alternancia de completitud.** Si dos peticiones
+simultáneas alternaran la misma tarea, el resultado sería el esperado en cualquier caso,
+pero no se ha comprobado que el sistema lo maneje de forma explícita.
+
+## 10. Decisiones arquitectónicas
+
+Esta sección presenta las ocho decisiones registradas. Cada una se expone con el mismo
+esquema: el problema, las alternativas consideradas, la decisión, la razón, el
+compromiso asumido y las consecuencias. La documentación completa de cada decisión, con
+el detalle de las alternativas descartadas, se encuentra en los registros de decisión
+arquitectónica del repositorio.
+
+### 10.1 Arquitectura monolito modular sobre Django
+
+**Problema.** La consigna exige Django y prohíbe una capa de API. La decisión abierta era
+cómo organizar la aplicación.
+
+**Alternativas.** (a) Monolito modular, que es la que ofrece el propio Django. (b)
+Microservicios, separando gestión de tareas, autenticación y búsqueda. (c)
+Arquitectura por capas con Ports and Adapters, separando dominio, aplicación e
+infraestructura. (d) Arquitectura orientada a eventos con *Event Sourcing*.
+
+**Decisión.** Monolito modular siguiendo el ciclo de Django: modelos, vistas y
+plantillas.
+
+**Razón.** Los tres patrones descartados resuelven problemas que este sistema no tiene.
+Los microservicios aportan escalado y despliegue independientes; el sistema es
+monolítico por naturaleza porque su dominio es una sola operación coherente. La
+arquitectura por capas aporta aislamiento de dependencias, útil en sistemas con
+adaptadores externos, y aquí la única infraestructura externa es SQLite. El
+registro de eventos aporta trazabilidad de cambios, que no es un requisito del
+dominio, y a cambio obliga a materializar el estado y a manejar consistencia eventual.
+
+**Compromiso.** El sistema no escala a despliegue independiente. Si dos partes del
+dominio crecieran de forma dispar y con equipos distintos, esta arquitectura sería
+insuficiente.
+
+**Consecuencias.** El código queda dividido en módulos con responsabilidades claras y
+comprobables. Cada módulo es pequeño y la lógica de negocio es local. A cambio, todo se
+despliega como una unidad y el estado es compartido, lo que en un sistema de
+microservicios obligaría a resolver consistencia distribuida.
+
+### 10.2 Vistas basadas en clases
+
+**Problema.** La consigna exige que todas las vistas sean clases. La decisión propia era
+ cómo encajar esa exigencia sin producir un resultado más débil.
+
+**Alternativas.** (a) Vistas basadas en clases mediante las clases genéricas de Django.
+(b) Vistas basadas en clases pero escribidas desde cero, sin las clases genéricas. (c)
+Vistas basadas en función, que la consigna prohíbe.
+
+**Decisión.** Clases genéricas de Django: `ListView`, `DetailView`, `CreateView`,
+`UpdateView`, `DeleteView`, más `LoginRequiredMixin`.
+
+**Razón.** Las clases genéricas no son una abstracción sintáctica sin sustancia: resuelven
+el ciclo de vida completo de una operación CRUD, la construcción del queryset, el
+contexto de la plantilla, el manejo del formulario y la redirección tras el éxito. Lo
+que se añade sobre ellas —los *mixins* de autenticación, la restricción de conjunto de
+resultados— es el código que efectivamente distingue a este sistema.
+
+**Compromiso.** Una vista basada en clases es más verbosa y menos evidente de leer que
+una función equivalente. Para una vista que solo devuelve un texto estático, la
+proporción entre líneas de código y comportamiento es desfavorable. La propia
+documentación de Django advierte de esta clase de abstracción.
+
+**Consecuencias.** La reutilización es real: el mixin de autenticación se aplica en seis
+vistas sin duplicar una línea, y la restricción de propietario se define una vez. La
+comprensión del flujo requiere conocer el orden de ejecución de los *mixins*, lo que
+constituye una barrera de entrada. En el repositorio no existe ninguna vista basada en
+función.
+
+### 10.3 Ausencia de Django REST Framework
+
+**Problema.** La consigna prohíbe explícitamente su uso. La decisión era cómo resolver el
+requisito de "buenas prácticas" sin esa herramienta.
+
+**Alternativas.** (a) No usar Django REST Framework, como exige la consigna. (b) Usarlo
+para exponer una API paralela, contra la consigna.
+
+**Decisión.** Aplicación exclusivamente server-rendered, sin capa de API.
+
+**Razón.** Además de la razón normativa, la propia arquitectura funciona: sin capa de
+API, la autorización tiene un único punto de aplicación. Una API obligaría a duplicar la
+validación que el formulario ya realiza, mediante serializadores con reglas de
+validación propias, y a mantener dos rutas de acceso a la misma lógica de dominio que
+pueden divergir sin que nada lo advierta.
+
+**Compromiso.** No existe forma de acceso programático. Un cliente móvil o una
+integración con otro sistema requeriría un desarrollo adicional, y el trabajo de
+validación que un serializador automatizaría debe escribirse a mano en el formulario.
+
+**Consecuencias.** Menos código y una única ruta de acceso. La validación se define una
+vez, en el formulario. A cambio, el sistema no puede integrarse con terceros sin
+retrabajo.
+
+### 10.4 Autenticación de Django
+
+**Problema.** La consigna exige registro, inicio y cierre de sesión.
+
+**Alternativas.** (a) `django.contrib.auth`. (b) Implementar la autenticación desde
+cero. (c) Usar una biblioteca de terceros.
+
+**Decisión.** `django.contrib.auth`, con `LoginView` y `LogoutView` de Django y un
+formulario de registro que hereda de `UserCreationForm`.
+
+**Razón.** El módulo resuelve el almacenamiento seguro de contraseñas con derivación y
+sal, la gestión de sesiones, los cuatro validadores de robustez y la migración de
+esquemas, todo cubierto por pruebas del propio framework. Reimplementarlo sería
+reimplementar la gestión de contraseñas, que es donde más caro sale equivocarse.
+
+**Decisión adicional: el registro no inicia sesión automáticamente.** Tras registrarse,
+el usuario es dirigido a la pantalla de inicio de sesión. La consigna no especifica el
+comportamiento, y se eligió el más predecible: el estado de la sesión se mantiene
+explícito y el usuario confirma su credencial una vez, lo que además revela de inmediato
+un error de contraseña mal elegida.
+
+**Consecuencias.** Dos pasos tras el registro, en lugar de uno. A cambio, ningún
+comportamiento implícito de sesión. Como el cierre de sesión solo responde a peticiones
+`POST` desde Django 5, la interfaz debe ofrecer un formulario y no un enlace.
+
+### 10.5 Modelo de visibilidad de tareas
+
+**Problema.** El requisito central: tres niveles de visibilidad, con lectura compartida y
+pública, y sin que la visibilidad otorgue escritura.
+
+**Alternativas.** (a) Un campo de visibilidad con enumeración de tres valores en el
+modelo de tarea. (b) Una tabla de permisos por usuario y tarea. (c) Una lista de
+usuarios con acceso en la propia tarea. (d) Una preferencia de privacidad por usuario.
+
+**Decisión.** Campo de visibilidad con enumeración de tres valores, más dos métodos de
+consulta que concentran las políticas de lectura y escritura.
+
+**Razón.** La consigna describe un número cerrado de estados que la tarea toma y de los
+que no sale, lo que se corresponde naturalmente con un campo enumerado. Una tabla de
+control de acceso modelaría permisos arbitrarios por usuario, que el dominio no
+contempla, y que obligaría a un modelo de composición más complejo a cambio de una
+flexibilidad que no se utiliza.
+
+**Compromiso.** Cambiar el modelo de compartición más adelante, por ejemplo para
+conceder acceso a usuarios concretos, exigiría una migración de esquema. Un campo no
+puede expresar lo que una tabla de permisos expresa con naturalidad.
+
+**Consecuencias.** La regla es legible, se almacena junto a la tarea y se lee
+directamente en la base de datos. La seguridad no depende de ella: depende de que las
+políticas de lectura y escritura sean distintas y de que la escritura se resuelva
+siempre contra el propietario. La visibilidad nunca concede escritura, porque las
+consultas de escritura no consultan el campo de visibilidad en absoluto.
+
+### 10.6 Etiquetas en relación muchos a muchos
+
+**Problema.** Una tarea puede llevar varias etiquetas, y una etiqueta puede estar en
+varias tareas.
+
+**Alternativas.** (a) Relación muchos a muchos con un modelo de etiqueta. (b) Campo de
+texto libre en la tarea. (c) Copia de la etiqueta por tarea.
+
+**Decisión.** Relación muchos a muchos con el modelo `Tag`, con nombre único y *slug*
+único, y reutilización insensible a mayúsculas.
+
+**Razón.** La opción de texto libre preclude cualquier reutilización y convierte la
+búsqueda por etiqueta en una operación de coincidencia de cadenas, que no puede
+aprovechar un índice. La opción de copia multiplica las filas y rompe la noción de que
+la etiqueta es un concepto compartido.
+
+**Compromiso.** Un campo de texto es más cómodo de escribir, y la interfaz tiene que
+resolver la ambigüedad entre mayúsculas y espacios, además de detectar las colisiones
+de *slug* entre nombres distintos.
+
+**Consecuencias.** La búsqueda por etiqueta es una consulta de relación, con índice. La
+reutilización es natural y la entidad tiene identidad. A cambio, la resolución de
+etiquetas en el guardado es la parte más delicada del formulario, y fue el origen de un
+defecto real ya documentado.
+
+### 10.7 Bootstrap 5 vendorizado
+
+**Problema.** La consigna exige Bootstrap 5, y la aplicación necesita servir sus
+hojas de estilo y su código de interacción.
+
+**Alternativas.** (a) Bootstrap 5 servido desde una red de distribución de contenido.
+(b) Bootstrap 5 con los archivos alojados en el propio proyecto. (c) Hojas de estilo
+propias. (d) Un sistema de utilidades distinto.
+
+**Decisión.** Bootstrap 5, con los archivos alojados en el repositorio.
+
+**Razón.** La razón normativa es que la consigna exige Bootstrap 5. La razón técnica
+para servirlo localmente es que la aplicación no depende de la disponibilidad de un
+tercero, no expone las visitas de los usuarios a un dominio ajeno, y se comporta de
+manera idéntica por los dos caminos de instalación, incluidos entornos sin salida a
+internet.
+
+**Compromiso.** Los archivos deben actualizarse manualmente cuando sale una versión, y
+aumentan el tamaño del repositorio. Una red de distribución ofrecería actualizaciones
+automáticas y una caché del navegador más eficiente.
+
+**Consecuencias.** functioning independiente de la red y sin peticiones a terceros. A
+cambio, el proyecto asume la responsabilidad de mantener esos archivos al día.
+
+### 10.8 Estrategia de autorización
+
+**Problema.** Impedir que un usuario alcance recursos ajenos, y hacerlo de forma que no
+sea posible olvidar una comprobación.
+
+**Alternativas.** (a) Restricción a nivel de conjunto de resultados. (b) Verificación
+por vista con `UserPassesTestMixin`. (c) Comprobaciones por vista mediante
+decoradores. (d) Un marco propio de permisos.
+
+**Decisión.** Concentrar la política en los métodos del conjunto de resultados del
+modelo, y hacer que las vistas consulten esos métodos.
+
+**Razón.** Es la alternativa más difícil de usar por error. Si las reglas vivieran en
+las vistas, cada vista nueva sería una nueva oportunidad de implementar la regla de
+forma distinta, y auditar el sistema exigiría leer todas las vistas una por una. Al
+centralizar, las dos políticas se escriben una vez, y la restricción de propietario es
+imprescindible en toda vista mutable porque no hay una forma de obtener un objeto sin
+pasar por el método.
+
+**Compromiso.** La respuesta 404 en lugar de 403 borra deliberadamente la distinción
+entre "no existe" y "no permitido". Es lo correcto desde el punto de vista de la
+privacidad, pero dificulta el diagnóstico: un error de programación produce un 404
+indistinguible del comportamiento correcto.
+
+**Consecuencias.** La seguridad no depende de que cada vista recuerde comprobar. Ocultar
+un botón en la plantilla sigue siendo necesario para la experiencia del usuario, pero
+dejarlo de hacer no genera una vulnerabilidad. La aplicación es verificable con una
+docena de pruebas de conjunto y sin inspeccionar las vistas una por una.
+
+## 11. Cumplimiento de la consigna
+
+| Requisito | Implementación | Prueba | Estado |
+| --- | --- | --- | --- |
+| 1. Responsive con Bootstrap 5 | Bootstrap 5.3.8 vendorizado, navbar colapsable, tabla y tarjetas | Verificación a 360, 768 y 1440 px | **PASS** |
+| 2. CRUD con título, descripción, fecha y prioridad | `TaskCreateView`, `TaskUpdateView`, `TaskDeleteView`, `TaskCompleteToggleView` | `test_views` (53) | **PASS** |
+| 3. Ordenar por fecha o prioridad, filtrar por estado | `ALLOWED_SORTS`, `STATUS_FILTERS`, desempate `-pk` | `test_filters` (34) | **PASS** |
+| 4. Etiquetas y búsqueda por etiqueta | `Tag`, relación muchos a muchos, filtro por *slug* | `test_models`, `test_forms`, `test_filters` | **PASS** |
+| 5. Registro, inicio y cierre de sesión | `RegisterView`, `LoginView`, `LogoutView` | `test_views`, `test_forms` | **PASS** |
+| 6. CRUD solo por registrados y sobre tareas propias | `LoginRequiredMixin` más `owned_by()` | `test_permissions` (45) | **PASS** |
+| 7. Visibilidad solo lectura y pública | `Visibility`, `visible_to()`, `PublicTaskListView`, `SharedTaskListView` | `test_permissions` (45) | **PASS** |
+| 8. Buenas prácticas | Separación en capas, validación de servidor, CSRF, escape automático | Las 249 pruebas | **PASS** |
+| 9. Sin Django REST Framework | Sin dependencia y sin importaciones | Búsqueda sobre el repositorio: 0 coincidencias | **PASS** |
+| 10. Todas las vistas son clases | 9 clases más `LoginView` y `LogoutView` | Búsqueda de vistas por función: 0 coincidencias | **PASS** |
+
+### 11.1 Desviación declarada
+
+El corte de la semana 3, que la consigna define como un prototipo estático con datos
+simulados, **se entregó junto con el corte de la semana 7**.
+
+La razón es que una maqueta estática habría sido código descartable, y mantener dos
+versiones del mismo marcado introduce una divergión que nadie se ocupa de sostener. La
+capa de diseño se resolvió directamente contra el modelo definitivo, lo que además
+permitió verificar la interfaz con datos reales desde el primer momento.
+
+La consecuencia para la evaluación es concreta y conviene enunciarla sin rodeos: **no
+existe un commit correspondiente al corte de la semana 3**. El contenido de ese corte
+—estructura, jerarquía visual, estados de interfaz y comportamiento responsive— sí está
+entregado y documentado, pero forma parte de la misma entrega que el enrutamiento, las
+vistas y la autenticación.
+
+## 12. Limitaciones
+
+El proyecto cumple los requisitos de la consigna, pero su alcance es acotado y conviene
+declararlo con precisión.
+
+**No está preparado para producción.** El valor de depuración está activo y la lista
+de hosts permitidos está vacía, que es cómodo en desarrollo y peligroso fuera de él. La
+base de datos SQLite no es apropiada para producción con concurrencia. Esta
+configuración es deliberadamente previa al desarrollo y deben cambiarse antes de
+cualquier despliegue real.
+
+**No hay limitación de intentos de inicio de sesión.** El sistema admite fuerza bruta
+contra el formulario de acceso. Django no incluye esta protección y no se añadió porque
+la consigna no la exige, pero es un control que cualquier despliegue público necesitaría.
+
+**No hay pruebas de carga ni extremo a extremo en navegador.** La verificación de la
+interfaz se hizo por inspección, no automatizada.
+
+**El modelo de visibilidad no permite concesiones individuales.** Una tarea puede estar
+compartida con todos los registrados o con ninguno, pero no con un conjunto elegido de
+usuarios. Un campo enumerado no puede expresar eso; una tabla de control de acceso sí.
+
+**No hay paginación.** Los listados cargan todas las tareas del propietario. Es
+aceptable en el volumen de un curso y coherente con el criterio de no añadir complejidad
+innecesaria, pero no escala a un usuario con miles de tareas.
+
+**No hay borrado lógico.** Una tarea eliminada se pierde. La consigna no lo exige y su
+implementación añadiría un campo de estado y lógica de filtrado a cada consulta.
+
+**No se restringen las fechas de vencimiento pasadas.** La consigna exige el campo pero
+no su restricción, y laGx Briefly decisión de no inventar requisitos. Una tarea puede
+vencer en el pasado desde el momento de su creación, lo que tiene sentido para registrar
+tareas atrasadas.
+
+## 13. Posibles trabajos futuros
+
+Las siguientes mejoras son razonables pero **no forman parte de los requisitos
+existentes** y no se han implementado.
+
+**Borrado lógico con papelera.** Un campo de estado de baja y una vista de papelera
+evitarían la pérdida accidental de datos, a cambio de tener que excluir los registros
+borrados de todas las consultas.
+
+**Paginación de listados.** Necesaria en cuanto un usuario acumule cientos de tareas, y
+la razón principal por la que el ordenamiento incluye hoy un desempate explícito.
+
+**Permisos por usuario.** Una tabla que relacione tareas con usuarios autorizados
+permitiría compartir con personas concretas en lugar de con todos los registrados,
+generalizando el modelo de visibilidad actual.
+
+**Cliente móvil o API de consulta.** Permitiría consultar las tareas públicas desde
+dispositivos sin navegador, y exigiría decidir si esa vía de acceso comparte la misma
+política de autorización que la interfaz web.
+
+**Notificaciones.** Avisar al propietario cuando alguien comente o colabore en una tarea
+compartida, o cuando una tarea se aproxima a su vencimiento.
+
+**Internacionalización de la interfaz.** La aplicación está escrita íntegramente en
+español; una versión en inglés requeriría externalizar los literales.
+
+**Modo oscuro.** Bootstrap 5 ofrece el soporte mediante atributos de tema, y la decisión
+depende más del criterio de diseño que de la implementación.
+
+## 14. Conclusiones
+
+El trabajo partía de un requisito que parecía de formulario —un CRUD de tareas con
+etiquetas— y resultó ser un problema de control de acceso. La dificultad real no estaba
+en crear, editar o borrar tareas, sino en responder de manera consistente a quién puede
+ver cada tarea y en garantizar que esa respuesta no dependa de que cada vista recuerde
+comprobarlo.
+
+La decisión que resolvió el problema fue concentrada: dos políticas, escrita una sola
+vez, en el conjunto de resultados del modelo. Todo lo demás se apoyó en ella. Las vistas
+que necesitan escribir usan siempre la política de escritura; las que necesitan leer
+usan siempre la de lectura; ninguna confunde las dos. La consecuencia más Visible de esa
+decisión es que el sistema devuelve 404 en lugar de 403 cuando alguien alcanza un
+recurso ajeno, una elección que sacrifica comodidad de diagnóstico a cambio de no
+confirmar la existencia de datos ajenos.
+
+El proceso de desarrollo aportó una lección distinta y menos anticipada. La mayoría de
+los defectos encontrados no eran errores de sintaxis sino de diseño, y ninguno habría
+sido detectado por una comprobación estática. Declarar una propiedad que recibía un
+argumento, consultar un conjunto de tareas donde se esperaba uno de etiquetas, montar las
+rutas en el lugar equivocado del árbol: ninguno de los tres produce un error visible
+hasta que alguien pide una página concreta con datos reales. Es la razón por la que el
+proyecto incluye pruebas de extremo a extremo de cada vista y por la que los siete
+defectos encontrados tienen hoy su regresión.
+
+El proyecto cumple los ocho requisitos funcionales de la consigna y sus dos restricciones
+duras, con 249 pruebas automatizadas en verde y ocho decisiones arquitectónicas
+documentadas con sus alternativas descartadas y sus costos. Lo que deja de lado —paginación,
+permisos por usuario, borrado lógico, endurecimiento para producción— es deliberado y está
+enunciado como tal, porque un sistema acotado que declara sus límites es más útil que uno
+completo que no los declara.
+
+## Referencias
+
+Las referencias consultadas, con su URL y las secciones utilizadas en este trabajo, se
+detallan en [`paper/references.md`](references.md). Se citan únicamente fuentes
+oficiales verificadas: la documentación de Django 6.1, la documentación de Python 3.12, la
+documentación de Bootstrap 5.3, la documentación de SQLite y la del gestor de
+dependencias *uv*.
