@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% comment %}
+  Detalle de una tarea. `is_owner` lo calcula la vista (Task.is_editable_by);
+  el template nunca compara `user` con `task.owner`.
+  Contexto: task, is_owner.
+{% endcomment %}
+
+{% block title %}{{ task.title }} · Gestor de tareas{% endblock %}
+
+{% block content %}
+
+  <a class="btn btn-link ps-0 mb-2" href="{% url 'tasks:task-list' %}">← Volver a mis tareas</a>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <h1 class="h3 mb-1{% if task.completed %} text-body-secondary text-decoration-line-through{% endif %}">{{ task.title }}</h1>
+        {% if task.completed %}
+          <span class="badge bg-success">Completada</span>
+        {% else %}
+          <span class="badge bg-dark">Pendiente</span>
+        {% endif %}
+      </div>
+
+      <p class="mb-4{% if task.completed %} text-body-secondary text-decoration-line-through{% endif %}">{{ task.description|linebreaksbr }}</p>
+
+      <dl class="row mb-0">
+        <dt class="col-sm-3">Vencimiento</dt>
+        <dd class="col-sm-9">
+          {{ task.due_date|date:"d/m/Y" }}
+          {% now "Y-m-d" as today %}
+          {% if not task.completed and task.due_date|date:"Y-m-d" < today %}
+            <span class="badge bg-danger">Vencida</span>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Prioridad</dt>
+        <dd class="col-sm-9">
+          {% if task.priority == 1 %}
+            <span class="badge bg-secondary">Baja</span>
+          {% elif task.priority == 2 %}
+            <span class="badge bg-warning text-dark">Media</span>
+          {% elif task.priority == 3 %}
+            <span class="badge bg-danger">Alta</span>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Visibilidad</dt>
+        <dd class="col-sm-9">
+          {% if task.visibility == 'public' %}
+            <span class="badge bg-info text-dark">Pública</span>
+            <p class="small text-body-secondary mb-0 mt-1">
+              Cualquier persona puede leer esta tarea, incluso sin iniciar sesión. Solo vos podés modificarla.
+            </p>
+          {% elif task.visibility == 'authenticated' %}
+            <span class="badge bg-primary">Compartida con registradas</span>
+            <p class="small text-body-secondary mb-0 mt-1">
+              Cualquiera que tenga una cuenta puede leer esta tarea, pero no modificarla. Solo vos podés editarla o borrarla.
+            </p>
+          {% else %}
+            <span class="badge bg-secondary">Privada</span>
+            <p class="small text-body-secondary mb-0 mt-1">
+              Esta tarea es privada: solo vos podés verla y modificarla. Nadie más tiene acceso.
+            </p>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Etiquetas</dt>
+        <dd class="col-sm-9">
+          {% for t in task.tags.all %}
+            <span class="badge rounded-pill bg-body text-body-secondary border">#{{ t.name }}</span>
+          {% empty %}
+            <span class="text-body-secondary small">Sin etiquetas.</span>
+          {% endfor %}
+        </dd>
+
+        <dt class="col-sm-3">Creada</dt>
+        <dd class="col-sm-9 text-body-secondary">{{ task.created_at|date:"d/m/Y H:i" }}</dd>
+
+        <dt class="col-sm-3">Última modificación</dt>
+        <dd class="col-sm-9 text-body-secondary">{{ task.updated_at|date:"d/m/Y H:i" }}</dd>
+      </dl>
+    </div>
+
+    <div class="card-footer bg-transparent d-flex flex-wrap gap-2">
+      {% if is_owner %}
+        <a class="btn btn-primary" href="{% url 'tasks:task-update' task.pk %}">Editar</a>
+        <a class="btn btn-outline-danger" href="{% url 'tasks:task-delete' task.pk %}">Eliminar</a>
+        <form method="post" action="{% url 'tasks:task-toggle' task.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-secondary">
+            {% if task.completed %}Marcar como pendiente{% else %}Marcar como completada{% endif %}
+          </button>
+        </form>
+      {% else %}
+        <div class="alert alert-secondary mb-0 py-2" role="alert">
+          Solo lectura: no sos el propietario de esta tarea.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+{% endblock %}

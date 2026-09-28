@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% comment %}
+  Listado del propietario: TaskListView ya filtró por `owner`, así que acá
+  todas las tareas son del usuario y `is_owner=True` es una verdad de la vista,
+  no una autorización del template.
+  Contexto: tasks, status, tag, sort, allowed_sorts, all_tags.
+{% endcomment %}
+
+{% block title %}Mis tareas · Gestor de tareas{% endblock %}
+
+{% block content %}
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Mis tareas</h1>
+      <p class="text-body-secondary mb-0">Tus tareas: solo vos podés verlas y modificarlas.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'tasks:task-create' %}">Nueva tarea</a>
+  </div>
+
+  {# Filtros: la vista lee los tres parámetros (?status, ?sort, ?tag), por eso
+     un único formulario GET que los envía juntos es correcto. #}
+  <form class="row row-cols-1 row-cols-md-4 g-2 align-items-end mb-3"
+        method="get" action="{% url 'tasks:task-list' %}">
+    <div class="col">
+      <label class="form-label" for="filtro-status">Estado</label>
+      <select class="form-select" id="filtro-status" name="status">
+        <option value="all" class="{% if status == 'all' %}active{% endif %}" {% if status == 'all' %}selected{% endif %}>Todas</option>
+        <option value="pending" class="{% if status == 'pending' %}active{% endif %}" {% if status == 'pending' %}selected{% endif %}>Pendientes</option>
+        <option value="completed" class="{% if status == 'completed' %}active{% endif %}" {% if status == 'completed' %}selected{% endif %}>Completadas</option>
+      </select>
+    </div>
+    <div class="col">
+      <label class="form-label" for="filtro-sort">Ordenar por</label>
+      <select class="form-select" id="filtro-sort" name="sort">
+        {% for key in allowed_sorts %}
+          <option value="{{ key }}" class="{% if sort == key %}active{% endif %}" {% if sort == key %}selected{% endif %}>
+            {% if key == 'due_date' %}Fecha de vencimiento{% elif key == 'priority' %}Prioridad{% else %}{{ key }}{% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col">
+      <label class="form-label" for="filtro-tag">Etiqueta</label>
+      <input class="form-control" type="text" id="filtro-tag" name="tag" value="{{ tag }}"
+             placeholder="Ej.: django" maxlength="50">
+    </div>
+    <div class="col">
+      <button type="submit" class="btn btn-secondary w-100">Filtrar</button>
+    </div>
+  </form>
+
+  {% if all_tags %}
+    <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
+      <span class="text-body-secondary small">Etiquetas:</span>
+      <a class="btn btn-sm {% if not tag %}btn-dark{% else %}btn-outline-dark{% endif %}"
+         href="{% url 'tasks:task-list' %}">Todas</a>
+      {% for t in all_tags %}
+        <a class="btn btn-sm {% if tag == t.slug %}btn-dark active{% else %}btn-outline-dark{% endif %}"
+           href="?tag={{ t.slug|urlencode }}">{{ t.name }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if tasks %}
+    {# Tabla para md+ (a partir de 768 px). #}
+    <div class="d-none d-md-block table-responsive">
+      <table class="table table-hover align-middle bg-white shadow-sm rounded">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">Tarea</th>
+            <th scope="col">Vencimiento</th>
+            <th scope="col">Prioridad</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Visibilidad</th>
+            <th scope="col">Etiquetas</th>
+            <th scope="col" class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in tasks %}
+            <tr>
+              <td style="min-width: 260px;">
+                <a class="fw-semibold text-decoration-none{% if task.completed %} text-body-secondary text-decoration-line-through{% endif %}"
+                   href="{% url 'tasks:task-detail' task.pk %}">{{ task.title }}</a>
+                {% if task.description %}
+                  <div class="small text-body-secondary{% if task.completed %} text-decoration-line-through{% endif %}">
+                    {{ task.description|truncatechars:90 }}
+                  </div>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                {{ task.due_date|date:"d/m/Y" }}
+                {% now "Y-m-d" as today %}
+                {% if not task.completed and task.due_date|date:"Y-m-d" < today %}
+                  <span class="badge bg-danger">Vencida</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if task.priority == 1 %}
+                  <span class="badge bg-secondary">Baja</span>
+                {% elif task.priority == 2 %}
+                  <span class="badge bg-warning text-dark">Media</span>
+                {% elif task.priority == 3 %}
+                  <span class="badge bg-danger">Alta</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if task.completed %}
+                  <span class="badge bg-success">Completada</span>
+                {% else %}
+                  <span class="badge bg-dark">Pendiente</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if task.visibility == 'public' %}
+                  <span class="badge bg-info text-dark">Pública</span>
+                {% elif task.visibility == 'authenticated' %}
+                  <span class="badge bg-primary">Registradas</span>
+                {% else %}
+                  <span class="badge bg-secondary">Privada</span>
+                {% endif %}
+              </td>
+              <td>
+                {% for t in task.tags.all %}
+                  <span class="badge rounded-pill bg-body text-body-secondary border">#{{ t.name }}</span>
+                {% empty %}
+                  <span class="text-body-secondary small">—</span>
+                {% endfor %}
+              </td>
+              <td class="text-end text-nowrap">
+                <div class="d-flex justify-content-end gap-1">
+                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'tasks:task-update' task.pk %}">Editar</a>
+                  <a class="btn btn-sm btn-outline-danger" href="{% url 'tasks:task-delete' task.pk %}">Eliminar</a>
+                  <form method="post" action="{% url 'tasks:task-toggle' task.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                      {% if task.completed %}Reabrir{% else %}Completar{% endif %}
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Tarjetas apiladas para pantallas chicas (< 768 px). #}
+    <div class="d-md-none d-grid gap-3">
+      {% for task in tasks %}
+        {% include "tasks/partials/task_card.html" with task=task is_owner=True %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card shadow-sm text-center">
+      <div class="card-body py-5">
+        <h2 class="h5 card-title">Todavía no tenés tareas</h2>
+        {% if tag %}
+          <p class="card-text text-body-secondary">Ninguna tarea coincide con la etiqueta «{{ tag }}».</p>
+          <a class="btn btn-outline-secondary" href="{% url 'tasks:task-list' %}">Quitar el filtro</a>
+        {% else %}
+          <p class="card-text text-body-secondary">
+            Creá tu primera tarea para empezar a organizarte.
+          </p>
+          <a class="btn btn-primary" href="{% url 'tasks:task-create' %}">Crear mi primera tarea</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+{% endblock %}

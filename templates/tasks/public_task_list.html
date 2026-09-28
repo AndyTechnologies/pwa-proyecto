@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% comment %}
+  Tareas públicas. La vista no exige autenticación, así que esta pantalla se
+  renderiza para visitantes anónimos: nada de acciones de escritura y ningún
+  enlace a un área que requiera sesión.
+  Contexto: tasks.
+{% endcomment %}
+
+{% block title %}Tareas públicas · Gestor de tareas{% endblock %}
+
+{% block content %}
+
+  <div class="mb-3">
+    <h1 class="h3 mb-1">Tareas públicas</h1>
+    <p class="text-body-secondary mb-0">
+      Estas tareas están marcadas como públicas: cualquiera puede leerlas, incluso sin iniciar sesión.
+      Sus autores no pueden editarlas desde esta pantalla.
+    </p>
+  </div>
+
+  {% if tasks %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+      {% for task in tasks %}
+        <div class="col">
+          {% include "tasks/partials/task_card.html" with task=task is_owner=False %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card shadow-sm text-center">
+      <div class="card-body py-5">
+        <h2 class="h5 card-title">Todavía no hay tareas públicas</h2>
+        <p class="card-text text-body-secondary">
+          Nadie marcó una tarea como pública por el momento. Volvé a mirar más tarde.
+        </p>
+        <a class="btn btn-outline-secondary" href="{% url 'tasks:task-list' %}">Ir a mis tareas</a>
+      </div>
+    </div>
+  {% endif %}
+
+  <a class="btn btn-link ps-0 mt-3" href="{% url 'tasks:task-list' %}">← Volver a mis tareas</a>
+
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% comment %}
+  Login con AuthenticationForm de Django (django.contrib.auth.views.LoginView).
+  Contexto: form.
+{% endcomment %}
+
+{% block title %}Iniciar sesión · Gestor de tareas{% endblock %}
+
+{% block content %}
+
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-7 col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h1 class="h4 mb-3 text-center">Iniciar sesión</h1>
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+              <p class="mb-1 fw-semibold">No pudimos iniciar tu sesión:</p>
+              <ul class="mb-0">
+                {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+
+          <form method="post" action="{% url 'login' %}" novalidate>
+            {% csrf_token %}
+
+            {% for field in form %}
+              <div class="mb-3">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+
+            {# next permite que LoginView vuelva a la página que el visitor intentaba abrir. #}
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">Entrar</button>
+            </div>
+          </form>
+
+          <p class="text-center text-body-secondary mt-3 mb-0">
+            ¿Todavía no tenés cuenta? <a href="{% url 'register' %}">Creá una</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
