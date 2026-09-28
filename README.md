@@ -152,7 +152,7 @@ python manage.py test tasks                 # camino B, con el venv activo
 | [`docs/traceability.md`](docs/traceability.md) | Requisito → implementación → test → documentación |
 | [`docs/final-compliance-report.md`](docs/final-compliance-report.md) | Auditoría contra la consigna |
 | [`docs/adr/`](docs/adr/) | 8 Architecture Decision Records |
-| [`docs/milestones/`](docs/milestones/) | Qué entregó cada corte |
+| [`docs/milestones/`](docs/milestones/) | Qué entregó cada corte (semanas 3, 5, 7 y 9) |
 | [`paper/paper.md`](paper/paper.md) | Paper académico con el razonamiento técnico |
 
 ## Restricciones académicas
