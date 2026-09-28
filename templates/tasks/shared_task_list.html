@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% comment %}
+  Tareas que otros usuarios compartieron con el usuario actual. Todas son de
+  lectura: la vista ya excluyó las propias (`exclude(owner=...)`).
+  Contexto: tasks.
+{% endcomment %}
+
+{% block title %}Compartidas conmigo · Gestor de tareas{% endblock %}
+
+{% block content %}
+
+  <div class="mb-3">
+    <h1 class="h3 mb-1">Compartidas conmigo</h1>
+    <p class="text-body-secondary mb-0">
+      Tareas que otros usuarios decidieron compartir con vos. Podés leerlas, pero no editarlas ni borrarlas.
+    </p>
+  </div>
+
+  {% if tasks %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+      {% for task in tasks %}
+        <div class="col">
+          {% include "tasks/partials/task_card.html" with task=task is_owner=False %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card shadow-sm text-center">
+      <div class="card-body py-5">
+        <h2 class="h5 card-title">Todavía no hay tareas compartidas con vos</h2>
+        <p class="card-text text-body-secondary">
+          Cuando alguien marque una tarea como «Compartida con registradas», va a aparecer acá.
+        </p>
+        <a class="btn btn-primary" href="{% url 'tasks:task-list' %}">Ir a mis tareas</a>
+      </div>
+    </div>
+  {% endif %}
+
+  <a class="btn btn-link ps-0 mt-3" href="{% url 'tasks:task-list' %}">← Volver a mis tareas</a>
+
+{% endblock %}
