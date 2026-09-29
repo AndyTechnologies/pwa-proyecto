@@ -7,6 +7,7 @@ not own is never fetched and results in 404 rather than 403 (ADR-008).
 """
 
 from django.contrib import messages
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect
@@ -14,7 +15,7 @@ from django.urls import reverse
 from django.utils.text import slugify
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, RedirectView, UpdateView, View
 
-from .forms import RegisterForm, TaskForm
+from .forms import LoginForm, RegisterForm, TaskForm
 from .models import Tag, Task, Visibility
 
 # Whitelist of sortable fields. User input is only ever a *key* into this map,
@@ -37,6 +38,19 @@ STATUS_FILTERS = {
     "completed": True,
 }
 DEFAULT_STATUS = "all"
+
+
+class LoginView(auth_views.LoginView):
+    """Login with the styled :class:`~tasks.forms.LoginForm`.
+
+    A thin subclass of Django's own CBV: it only swaps the form so the inputs
+    carry Bootstrap classes and Spanish labels. Authentication itself, the
+    ``?next=`` handling and the redirect target stay Django's (ADR-004).
+    """
+
+    form_class = LoginForm
+    template_name = "registration/login.html"
+    redirect_authenticated_user = False
 
 
 class HomeRedirectView(RedirectView):

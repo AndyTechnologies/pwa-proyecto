@@ -7,14 +7,73 @@ appearance, which the assignment explicitly discourages (see ADR-004).
 """
 
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 
 from .models import Tag, Task
 
 
-class RegisterForm(UserCreationForm):
+class BootstrapWidgetMixin:
+    """Apply Bootstrap 5 control classes to a form's widgets.
+
+    Django exposes no way to set widget attributes from a template, and
+    django-widget-tweaks is deliberately not a dependency (RNF-12), so the
+    classes have to be attached here.
+
+    This was previously done inline inside ``TaskForm.__init__`` only, which
+    left ``AuthenticationForm`` (login) and ``RegisterForm`` (create account)
+    rendering completely unstyled native inputs. Mixing it in keeps one
+    implementation for every form in the project.
+    """
+
+    def apply_bootstrap_classes(self):
+        for name, field in self.fields.items():
+            widget = field.widget
+            if isinstance(widget, forms.CheckboxInput):
+                css = "form-check-input"
+            elif isinstance(widget, forms.Select):
+                css = "form-select"
+            elif isinstance(widget, forms.RadioSelect):
+                css = "form-check-input"
+            else:
+                css = "form-control"
+
+            # An invalid field must carry `.is-invalid`, otherwise Bootstrap
+            # keeps `.invalid-feedback` hidden and the error text never shows.
+            if self.is_bound and self.errors.get(name):
+                css = f"{css} is-invalid"
+
+            # Merge instead of concatenating blindly, so calling this twice
+            # cannot produce "form-control form-control".
+            current = widget.attrs.get("class", "")
+            merged = current.split()
+            for token in f"{css} {current}".split():
+                if token not in merged:
+                    merged.append(token)
+            widget.attrs["class"] = " ".join(merged)
+
+
+class LoginForm(BootstrapWidgetMixin, AuthenticationForm):
+    """``AuthenticationForm`` with Bootstrap controls and Spanish labels.
+
+    ``LoginView`` defaults to Django's own ``AuthenticationForm``, which
+    renders bare ``<input>`` elements: no ``form-control``, and English labels
+    ("Username", "Password") on a Spanish-language app. Only the presentation
+    is redefined; credential validation is Django's, untouched (ADR-004).
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].label = "Usuario"
+        self.fields["username"].widget.attrs["autocomplete"] = "username"
+        self.fields["username"].widget.attrs["autofocus"] = True
+        self.fields["password"].label = "Contraseña"
+        self.fields["password"].widget.attrs["autocomplete"] = "current-password"
+        self.apply_bootstrap_classes()
+
+
+class RegisterForm(BootstrapWidgetMixin, UserCreationForm):
     """Registration form: username + password + password confirmation.
 
     Inherits Django's password validators and strength checks.
@@ -24,8 +83,12 @@ class RegisterForm(UserCreationForm):
         model = User
         fields = ("username",)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap_classes()
 
-class TaskForm(forms.ModelForm):
+
+class TaskForm(BootstrapWidgetMixin, forms.ModelForm):
     """Create/update form for a task.
 
     Tags are edited as a single free-text field of comma-separated names rather
@@ -61,21 +124,10 @@ class TaskForm(forms.ModelForm):
         # explicitly so the UI reads in Spanish.
         self.fields["priority"].label = "Prioridad"
         self.fields["visibility"].label = "Visibilidad"
-        # Bootstrap classes must be applied here: Django exposes no way to set
-        # widget attributes from a template, and django-widget-tweaks is
+        # Bootstrap classes are applied by BootstrapWidgetMixin: templates
+        # cannot mutate widget.attrs, and django-widget-tweaks is
         # deliberately not a dependency (RNF-12).
-        for field in self.fields.values():
-            widget = field.widget
-            if isinstance(widget, forms.Select):
-                css = "form-select"
-            elif isinstance(widget, forms.CheckboxInput):
-                css = "form-check-input"
-            else:
-                css = "form-control"
-            existing = widget.attrs.get("class")
-            if existing:
-                css = f"{existing} {css}"
-            widget.attrs["class"] = css
+        self.apply_bootstrap_classes()
 
     def clean_tags_input(self):
         """Reject names that cannot become a valid ``Tag``."""
