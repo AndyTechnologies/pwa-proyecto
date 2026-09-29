@@ -1,0 +1,491 @@
+/*
+ * apple.css — design system for the Task Manager.
+ *
+ * Apple's approach, translated for a Bootstrap 5 web app. Three ideas drive
+ * everything here:
+ *
+ *   1. Response kills latency. Feedback lands on pointer-down, not on release,
+ *      so the interface never feels dead while you wait.
+ *   2. Motion is a conversation. Transitions start from the value currently on
+ *      screen, use a critically damped spring-like curve, and never overshoot
+ *      unless a flick carried momentum in. Nothing here bounces.
+ *   3. Restraint. Translucency is used on exactly one surface (the floating
+ *      navbar). Stacking translucent layers collapses legibility, so it is used
+ *      once, deliberately.
+ *
+ * Loaded AFTER bootstrap.min.css, so every value here wins on specificity ties
+ * while Bootstrap keeps supplying layout, utilities and components.
+ */
+
+/* ---------------------------------------------------------------------------
+ * 1. Tokens
+ * ------------------------------------------------------------------------ */
+
+:root {
+  /*
+   * Motion. A spring has no fixed duration; "response" is roughly how fast it
+   * settles. 1.0 = critically damped, i.e. no overshoot — Apple's house style
+   * for UI that was not thrown by the user. Nothing here overshoots.
+   */
+  --apple-ease: cubic-bezier(0.32, 0.72, 0, 1);      /* the "smooth" standard */
+  --apple-ease-out: cubic-bezier(0.16, 1, 0.3, 1);   /* decelerate to rest */
+  --apple-response: 320ms;                          /* move / panel work */
+  --apple-response-fast: 180ms;                     /* press feedback */
+  --apple-response-slow: 480ms;                     /* material arrival */
+
+  /* Depth. Bigger surfaces read thicker: more blur, deeper shadow. */
+  --apple-blur-nav: 20px;
+  --apple-blur-card: 0px;
+  --apple-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.06);
+  --apple-shadow-md: 0 2px 6px rgb(0 0 0 / 0.05), 0 8px 24px rgb(0 0 0 / 0.07);
+  --apple-shadow-lg: 0 4px 12px rgb(0 0 0 / 0.06), 0 16px 48px rgb(0 0 0 / 0.10);
+
+  /* Radii. Continuous curvature reads as a material, not a box. */
+  --apple-radius-sm: 8px;
+  --apple-radius: 12px;
+  --apple-radius-lg: 16px;
+  --apple-radius-xl: 22px;
+
+  /* Vibrancy. Text over translucency needs contrast and weight, not grey. */
+  --apple-nav-fg: rgb(22 22 24 / 0.92);
+  --apple-vibrant: rgb(22 22 24 / 0.88);
+
+  /* Tracking. Size-specific by design: large text tightens, body stays at 0. */
+  --apple-track-display: -0.022em;
+  --apple-track-heading: -0.014em;
+  --apple-track-body: 0;
+  --apple-track-caps: 0.06em;
+}
+
+/* Dark theme mirrors, so the translucent navbar stays legible either way. */
+[data-bs-theme="dark"] {
+  --apple-nav-fg: rgb(245 245 247 / 0.92);
+  --apple-vibrant: rgb(235 235 245 / 0.86);
+  --apple-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.30), 0 1px 3px rgb(0 0 0 / 0.36);
+  --apple-shadow-md: 0 2px 6px rgb(0 0 0 / 0.34), 0 8px 24px rgb(0 0 0 / 0.42);
+  --apple-shadow-lg: 0 4px 12px rgb(0 0 0 / 0.38), 0 16px 48px rgb(0 0 0 / 0.50);
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. Typography — optical sizing, tracking and leading as a set
+ * ------------------------------------------------------------------------ */
+
+body {
+  /* System stack first: it already ships optical sizing and tuning. */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+    system-ui, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  letter-spacing: var(--apple-track-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Dynamic Type: let the user's own font size drive the layout. */
+  text-size-adjust: 100%;
+}
+
+/* Large text wants tighter tracking and tighter leading. */
+h1, h2, h3, h4, h5, h6, .display-1, .display-2, .display-3 {
+  font-weight: 600;
+  letter-spacing: var(--apple-track-heading);
+  line-height: 1.15;
+}
+
+h1, .h1, h2, .h2, h3, .h3 { letter-spacing: var(--apple-track-heading); }
+
+.display-1, .display-2, .display-3 {
+  letter-spacing: var(--apple-track-display);
+  line-height: 1.05;
+}
+
+/* Dense, information-heavy UI tightens its leading. */
+.table { line-height: 1.35; }
+
+/* Small text earns a touch of positive tracking for legibility. */
+.small, small, .badge, .form-text, .form-label {
+  letter-spacing: 0.01em;
+}
+
+/* All-caps micro-labels need real tracking to stay readable. */
+.text-uppercase, .badge.text-uppercase {
+  letter-spacing: var(--apple-track-caps);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. Response — feedback on pointer-down, never on release
+ * ------------------------------------------------------------------------ */
+
+/*
+ * The whole point: a press is acknowledged in one frame. Waiting for click
+ * (touch-up) is what makes an interface feel dead.
+ */
+.btn,
+.btn-sm,
+.nav-link,
+.navbar-brand,
+.form-control,
+.form-select,
+.form-check-input,
+.badge,
+a.card-link,
+.dropdown-item,
+.alert-dismissible .btn-close {
+  transition:
+    transform var(--apple-response-fast) var(--apple-ease-out),
+    background-color var(--apple-response-fast) var(--apple-ease-out),
+    border-color var(--apple-response-fast) var(--apple-ease-out),
+    color var(--apple-response-fast) var(--apple-ease-out),
+    box-shadow var(--apple-response-fast) var(--apple-ease-out),
+    opacity var(--apple-response-fast) var(--apple-ease-out);
+}
+
+.btn:active,
+.btn-sm:active,
+a:active {
+  /* Slight compression under the finger: the object is being pushed. */
+  transform: scale(0.97);
+}
+
+/*
+ * Set by apple.js on pointerdown so the acknowledgement lands in the same
+ * frame, rather than waiting for the :active latch on touch engines.
+ */
+.apple-pressed {
+  transform: scale(0.97);
+  opacity: 0.92;
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  /* Focus is a ring, not a colour swap, and it follows the spring. */
+  box-shadow: 0 0 0 4px rgb(0 122 255 / 0.18);
+  border-color: rgb(0 122 255 / 0.65);
+}
+
+/* Keyboard users get an unmistakable ring. */
+:focus-visible {
+  outline: 2px solid rgb(0 122 255 / 0.9);
+  outline-offset: 2px;
+  border-radius: var(--apple-radius-sm);
+}
+
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible {
+  outline: 2px solid rgb(0 122 255 / 0.9);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. Materials and depth — one translucent surface, used once
+ * ------------------------------------------------------------------------ */
+
+/*
+ * The navbar is the only floating chrome, so it is the only blurred material.
+ * Content scrolls underneath it rather than being pushed by an opaque bar.
+ */
+.navbar-apple {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  background: rgb(255 255 255 / 0.72);
+  backdrop-filter: saturate(180%) blur(var(--apple-blur-nav));
+  -webkit-backdrop-filter: saturate(180%) blur(var(--apple-blur-nav));
+  /* A bright top edge: light catching the material. */
+  border-bottom: 1px solid rgb(255 255 255 / 0.55);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.04);
+}
+
+/* Vibrancy: high contrast and real weight, never flat grey. */
+.navbar-apple .navbar-brand {
+  font-weight: 600;
+  letter-spacing: var(--apple-track-heading);
+  color: var(--apple-nav-fg);
+}
+
+.navbar-apple .navbar-brand:hover { color: var(--apple-nav-fg); }
+
+.navbar-apple .nav-link {
+  color: var(--apple-vibrant);
+  font-weight: 450;
+  border-radius: var(--apple-radius-sm);
+  padding-inline: 0.7rem;
+}
+
+.navbar-apple .nav-link:hover { color: var(--apple-nav-fg); background: rgb(0 0 0 / 0.04); }
+
+/* Anchor interactions to their source: the active pill grows from the link. */
+.navbar-apple .nav-link.active {
+  color: var(--apple-nav-fg);
+  background: rgb(0 0 0 / 0.07);
+  font-weight: 550;
+  transform-origin: center;
+}
+
+[data-bs-theme="dark"] .navbar-apple {
+  background: rgb(28 28 30 / 0.72);
+  border-bottom-color: rgb(255 255 255 / 0.10);
+}
+
+[data-bs-theme="dark"] .navbar-apple .nav-link:hover { background: rgb(255 255 255 / 0.08); }
+[data-bs-theme="dark"] .navbar-apple .nav-link.active { background: rgb(255 255 255 / 0.14); }
+
+/* Cards: a material with a soft edge, not a bordered box. */
+.card {
+  border: 1px solid rgb(0 0 0 / 0.06);
+  border-radius: var(--apple-radius-lg);
+  box-shadow: var(--apple-shadow-sm);
+  background-color: var(--bs-body-bg);
+  transition:
+    box-shadow var(--apple-response) var(--apple-ease),
+    transform var(--apple-response) var(--apple-ease),
+    border-color var(--apple-response) var(--apple-ease);
+}
+
+.card:hover {
+  /* Lift on approach, like a surface coming toward you. */
+  box-shadow: var(--apple-shadow-md);
+  border-color: rgb(0 0 0 / 0.09);
+}
+
+[data-bs-theme="dark"] .card { border-color: rgb(255 255 255 / 0.10); }
+[data-bs-theme="dark"] .card:hover { border-color: rgb(255 255 255 / 0.16); }
+
+/* Interactive cards lift slightly; static ones must not move under the cursor. */
+.card-interactive { cursor: pointer; }
+.card-interactive:hover { transform: translateY(-2px); box-shadow: var(--apple-shadow-md); }
+.card-interactive:active { transform: translateY(0) scale(0.995); }
+
+/* Destructive confirmation gets a heavier, unmistakable edge. */
+.card-danger-apple {
+  border-color: rgb(220 53 69 / 0.35);
+  box-shadow: var(--apple-shadow-md);
+}
+
+/* ---------------------------------------------------------------------------
+ * 5. Entrance — materialize rather than merely fade
+ * ------------------------------------------------------------------------ */
+
+/*
+ * Content arrives once, gently. Blur and transform settle together so the page
+ * reads as a surface arriving, not an opacity trick.
+ */
+.apple-enter {
+  animation: apple-materialize var(--apple-response-slow) var(--apple-ease) both;
+}
+
+@keyframes apple-materialize {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 6. Badges and pills
+ * ------------------------------------------------------------------------ */
+
+.badge {
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  border-radius: var(--apple-radius-sm);
+  padding-inline: 0.5em;
+}
+
+.rounded-pill { border-radius: 999px; }
+
+/* A completed task recedes instead of shouting. */
+.task-done .task-title {
+  color: var(--bs-secondary-color);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* ---------------------------------------------------------------------------
+ * 7. Empty states — say what is missing and what to do
+ * ------------------------------------------------------------------------ */
+
+.apple-empty {
+  border: 1px dashed rgb(0 0 0 / 0.12);
+  border-radius: var(--apple-radius-lg);
+  background: transparent;
+  box-shadow: none;
+}
+
+.apple-empty .apple-empty-title { font-weight: 600; letter-spacing: var(--apple-track-heading); }
+
+[data-bs-theme="dark"] .apple-empty { border-color: rgb(255 255 255 / 0.14); }
+
+/* ---------------------------------------------------------------------------
+ * 8. Wayfinding
+ * ------------------------------------------------------------------------ */
+
+.apple-page-title {
+  font-weight: 650;
+  letter-spacing: var(--apple-track-display);
+  /* Optically sized rather than a fixed rem: grows with the user's text size. */
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  line-height: 1.15;
+}
+
+.apple-lede {
+  color: var(--bs-secondary-color);
+  /* Slightly looser leading than body: this is the page's orientation text. */
+  line-height: 1.5;
+  max-width: 62ch;
+}
+
+.apple-back {
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: var(--apple-radius-sm);
+}
+
+.apple-back:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------------------------------------------------------------------------
+ * 9. Forms
+ * ------------------------------------------------------------------------ */
+
+.form-control,
+.form-select {
+  border-radius: var(--apple-radius-sm);
+  border-color: rgb(0 0 0 / 0.14);
+  padding: 0.5rem 0.75rem;
+  /* Roomier tap target without changing the type size. */
+  min-height: 2.5rem;
+}
+
+.form-control:focus,
+.form-select:focus { border-color: rgb(0 122 255 / 0.65); }
+
+.form-label { font-weight: 500; margin-bottom: 0.35rem; }
+
+/* Inline validation: the field turns red, the message is already visible. */
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: rgb(220 53 69 / 0.7);
+  box-shadow: 0 0 0 4px rgb(220 53 69 / 0.12);
+}
+
+.invalid-feedback { font-weight: 450; }
+
+/* ---------------------------------------------------------------------------
+ * 10. Tables
+ * ------------------------------------------------------------------------ */
+
+.table {
+  --bs-table-bg: transparent;
+  border-radius: var(--apple-radius);
+  overflow: hidden;
+}
+
+.table > thead th {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: var(--apple-track-caps);
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+  background: transparent;
+  border-bottom-color: rgb(0 0 0 / 0.10);
+  white-space: nowrap;
+}
+
+.table > tbody > tr { transition: background-color var(--apple-response-fast) var(--apple-ease-out); }
+.table > tbody > tr:hover { background-color: rgb(0 0 0 / 0.03); }
+
+[data-bs-theme="dark"] .table > tbody > tr:hover { background-color: rgb(255 255 255 / 0.05); }
+[data-bs-theme="dark"] .table > thead th { border-bottom-color: rgb(255 255 255 / 0.12); }
+
+/* ---------------------------------------------------------------------------
+ * 11. Alerts — four feedback kinds, consistent shape
+ * ------------------------------------------------------------------------ */
+
+.alert {
+  border-radius: var(--apple-radius);
+  border: 1px solid transparent;
+  font-weight: 450;
+}
+
+/* ---------------------------------------------------------------------------
+ * 12. Reduced motion — gentler, not absent
+ * ------------------------------------------------------------------------ */
+
+/*
+ * Reduced motion does not mean no feedback: it means no vestibular load.
+ * Slides and springs become short opacity cross-fades. The user still sees
+ * that something happened.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .apple-enter { animation: none; opacity: 1; transform: none; filter: none; }
+
+  .btn:active,
+  .btn-sm:active,
+  a:active,
+  .card-interactive:hover,
+  .card-interactive:active {
+    transform: none;
+  }
+
+  /* Keep a visible press state, as a cross-fade instead of a scale. */
+  .btn:active { opacity: 0.6; }
+  .apple-pressed { transform: none; opacity: 0.6; }
+  .card-interactive:hover { box-shadow: var(--apple-shadow-sm); }
+}
+
+/* Frostier, solid material where translucency hurts readability. */
+@media (prefers-reduced-transparency: reduce) {
+  .navbar-apple {
+    background: var(--bs-body-bg) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom: 1px solid rgb(0 0 0 / 0.12) !important;
+  }
+
+  [data-bs-theme="dark"] .navbar-apple { border-bottom-color: rgb(255 255 255 / 0.14) !important; }
+  .card { background-color: var(--bs-body-bg) !important; }
+}
+
+/* Near-solid surfaces with a defined, contrasting edge. */
+@media (prefers-contrast: more) {
+  .navbar-apple {
+    background: var(--bs-body-bg) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom: 2px solid currentColor !important;
+  }
+
+  .card { border: 2px solid currentColor !important; }
+  .btn { border-width: 2px !important; }
+  .form-control,
+  .form-select { border-width: 2px !important; }
+  .table > tbody > tr:hover { background-color: transparent; }
+
+  :focus-visible { outline-width: 3px !important; }
+}
+
+/* ---------------------------------------------------------------------------
+ * 13. Print
+ * ------------------------------------------------------------------------ */
+
+@media print {
+  .navbar-apple { position: static; background: none; backdrop-filter: none; box-shadow: none; }
+  .apple-enter { animation: none; }
+  .btn, form, .apple-back { display: none !important; }
+}
