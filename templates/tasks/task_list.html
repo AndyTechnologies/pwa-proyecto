@@ -19,8 +19,13 @@
     <a class="btn btn-primary" href="{% url 'tasks:task-create' %}">Nueva tarea</a>
   </div>
 
-  {# Filtros: la vista lee los tres parámetros (?status, ?sort, ?tag), por eso
-     un único formulario GET que los envía juntos es correcto. #}
+  {% comment %}
+    Filtros: la vista lee los tres parámetros (?status, ?sort, ?tag), por eso
+    un único formulario GET que los envía juntos es correcto.
+    Nota: el comentario va en un bloque {% comment %} y no en {# ... #} porque
+    Django sólo reconoce {# #} en una sola línea; al partirlo en dos, Django
+    no lo lexea como comentario y lo imprime literal en la página.
+  {% endcomment %}
   <form class="row row-cols-1 row-cols-md-4 g-2 align-items-end mb-3"
         method="get" action="{% url 'tasks:task-list' %}">
     <div class="col">
