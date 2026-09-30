@@ -12,16 +12,16 @@
 
   <div class="row justify-content-center">
     <div class="col-12 col-lg-7">
-      <div class="card border-danger shadow-sm">
-        <div class="card-body">
-          <h1 class="h4 card-title text-danger mb-3">¿Eliminar esta tarea?</h1>
-          <p class="card-text">Vas a eliminar de forma permanente la tarea:</p>
+      <div class="card card-danger-apple">
+        <div class="card-body p-4">
+          <h1 class="apple-page-title text-danger mb-3">¿Eliminar esta tarea?</h1>
+          <p class="text-body-secondary">Vas a eliminar de forma permanente la tarea:</p>
           <p class="fw-semibold fs-5">{{ task.title }}</p>
           <p class="text-body-secondary small mb-0">
             Esta acción no se puede deshacer: la tarea y sus etiquetas se borran definitivamente.
           </p>
         </div>
-        <div class="card-footer bg-transparent d-flex flex-wrap gap-2">
+        <div class="card-footer bg-transparent d-flex flex-wrap gap-2 p-4">
           <form method="post" action="{% url 'tasks:task-delete' task.pk %}">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger">Sí, eliminar</button>

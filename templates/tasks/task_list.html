@@ -11,36 +11,40 @@
 
 {% block content %}
 
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <header class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
     <div>
-      <h1 class="h3 mb-1">Mis tareas</h1>
-      <p class="text-body-secondary mb-0">Tus tareas: solo vos podés verlas y modificarlas.</p>
+      <h1 class="apple-page-title mb-1">Mis tareas</h1>
+      <p class="apple-lede mb-0">Solo vos podés verlas y modificarlas.</p>
     </div>
     <a class="btn btn-primary" href="{% url 'tasks:task-create' %}">Nueva tarea</a>
-  </div>
+  </header>
 
   {% comment %}
     Filtros: la vista lee los tres parámetros (?status, ?sort, ?tag), por eso
     un único formulario GET que los envía juntos es correcto.
-    Nota: el comentario va en un bloque {% comment %} y no en {# ... #} porque
-    Django sólo reconoce {# #} en una sola línea; al partirlo en dos, Django
-    no lo lexea como comentario y lo imprime literal en la página.
+    Nota: va en {% comment %} y no en {# ... #} porque Django sólo reconoce
+    {# #} en una sola línea; al partirlo en dos, Django no lo lexea como
+    comentario y lo imprime literal en la página.
   {% endcomment %}
   <form class="row row-cols-1 row-cols-md-4 g-2 align-items-end mb-3"
         method="get" action="{% url 'tasks:task-list' %}">
     <div class="col">
       <label class="form-label" for="filtro-status">Estado</label>
       <select class="form-select" id="filtro-status" name="status">
-        <option value="all" class="{% if status == 'all' %}active{% endif %}" {% if status == 'all' %}selected{% endif %}>Todas</option>
-        <option value="pending" class="{% if status == 'pending' %}active{% endif %}" {% if status == 'pending' %}selected{% endif %}>Pendientes</option>
-        <option value="completed" class="{% if status == 'completed' %}active{% endif %}" {% if status == 'completed' %}selected{% endif %}>Completadas</option>
+        {% comment %}
+          Sin `class="active"` en los <option>: un <select> nativo no lo
+          estiliza, así que sólo agregaba marcado inútil al HTML.
+        {% endcomment %}
+        <option value="all" {% if status == 'all' %}selected{% endif %}>Todas</option>
+        <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pendientes</option>
+        <option value="completed" {% if status == 'completed' %}selected{% endif %}>Completadas</option>
       </select>
     </div>
     <div class="col">
       <label class="form-label" for="filtro-sort">Ordenar por</label>
       <select class="form-select" id="filtro-sort" name="sort">
         {% for key in allowed_sorts %}
-          <option value="{{ key }}" class="{% if sort == key %}active{% endif %}" {% if sort == key %}selected{% endif %}>
+          <option value="{{ key }}" {% if sort == key %}selected{% endif %}>
             {% if key == 'due_date' %}Fecha de vencimiento{% elif key == 'priority' %}Prioridad{% else %}{{ key }}{% endif %}
           </option>
         {% endfor %}
@@ -57,22 +61,27 @@
   </form>
 
   {% if all_tags %}
-    <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
+    <div class="mb-4 d-flex flex-wrap align-items-center gap-2">
       <span class="text-body-secondary small">Etiquetas:</span>
-      <a class="btn btn-sm {% if not tag %}btn-dark{% else %}btn-outline-dark{% endif %}"
+      <a class="btn btn-sm {% if not tag %}btn-dark{% else %}btn-outline-secondary{% endif %}"
+         {% if not tag %}aria-current="true"{% endif %}
          href="{% url 'tasks:task-list' %}">Todas</a>
       {% for t in all_tags %}
-        <a class="btn btn-sm {% if tag == t.slug %}btn-dark active{% else %}btn-outline-dark{% endif %}"
+        <a class="btn btn-sm {% if tag == t.slug %}btn-dark{% else %}btn-outline-secondary{% endif %}"
+           {% if tag == t.slug %}aria-current="true"{% endif %}
            href="?tag={{ t.slug|urlencode }}">{{ t.name }}</a>
       {% endfor %}
     </div>
   {% endif %}
 
   {% if tasks %}
-    {# Tabla para md+ (a partir de 768 px). #}
+    {% comment %}
+      Tabla para md+ (a partir de 768 px). El ancho mínimo de la primera
+      columna evita que el título se parta en varias líneas.
+    {% endcomment %}
     <div class="d-none d-md-block table-responsive">
-      <table class="table table-hover align-middle bg-white shadow-sm rounded">
-        <thead class="table-light">
+      <table class="table table-hover align-middle">
+        <thead>
           <tr>
             <th scope="col">Tarea</th>
             <th scope="col">Vencimiento</th>
@@ -85,12 +94,12 @@
         </thead>
         <tbody>
           {% for task in tasks %}
-            <tr>
+            <tr{% if task.completed %} class="task-done"{% endif %}>
               <td style="min-width: 260px;">
-                <a class="fw-semibold text-decoration-none{% if task.completed %} text-body-secondary text-decoration-line-through{% endif %}"
+                <a class="fw-semibold text-decoration-none task-title"
                    href="{% url 'tasks:task-detail' task.pk %}">{{ task.title }}</a>
                 {% if task.description %}
-                  <div class="small text-body-secondary{% if task.completed %} text-decoration-line-through{% endif %}">
+                  <div class="small text-body-secondary">
                     {{ task.description|truncatechars:90 }}
                   </div>
                 {% endif %}
@@ -136,11 +145,14 @@
               </td>
               <td class="text-end text-nowrap">
                 <div class="d-flex justify-content-end gap-1">
-                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'tasks:task-update' task.pk %}">Editar</a>
-                  <a class="btn btn-sm btn-outline-danger" href="{% url 'tasks:task-delete' task.pk %}">Eliminar</a>
-                  <form method="post" action="{% url 'tasks:task-toggle' task.pk %}">
+                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'tasks:task-update' task.pk %}"
+                     aria-label="Editar {{ task.title }}">Editar</a>
+                  <a class="btn btn-sm btn-outline-danger" href="{% url 'tasks:task-delete' task.pk %}"
+                     aria-label="Eliminar {{ task.title }}">Eliminar</a>
+                  <form method="post" action="{% url 'tasks:task-toggle' task.pk %}" class="d-inline">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <button type="submit" class="btn btn-sm btn-outline-primary"
+                            aria-label="{% if task.completed %}Reabrir{% else %}Completar{% endif %} {{ task.title }}">
                       {% if task.completed %}Reabrir{% else %}Completar{% endif %}
                     </button>
                   </form>
@@ -152,23 +164,25 @@
       </table>
     </div>
 
-    {# Tarjetas apiladas para pantallas chicas (< 768 px). #}
+    {% comment %}Tarjetas apiladas para pantallas chicas (< 768 px).{% endcomment %}
     <div class="d-md-none d-grid gap-3">
       {% for task in tasks %}
         {% include "tasks/partials/task_card.html" with task=task is_owner=True %}
       {% endfor %}
     </div>
   {% else %}
-    <div class="card shadow-sm text-center">
+    {% comment %}
+      Estado vacío: dice qué falta y ofrece la acción que lo resuelve. Sin
+      bordes duros ni sombra: es ausencia de contenido, no una superficie.
+    {% endcomment %}
+    <div class="card apple-empty text-center">
       <div class="card-body py-5">
-        <h2 class="h5 card-title">Todavía no tenés tareas</h2>
+        <h2 class="h5 apple-empty-title">{% if tag %}Ninguna tarea coincide{% else %}Todavía no tenés tareas{% endif %}</h2>
         {% if tag %}
-          <p class="card-text text-body-secondary">Ninguna tarea coincide con la etiqueta «{{ tag }}».</p>
+          <p class="text-body-secondary">La etiqueta «{{ tag }}» no está en tu lista.</p>
           <a class="btn btn-outline-secondary" href="{% url 'tasks:task-list' %}">Quitar el filtro</a>
         {% else %}
-          <p class="card-text text-body-secondary">
-            Creá tu primera tarea para empezar a organizarte.
-          </p>
+          <p class="text-body-secondary">Creá tu primera tarea para empezar a organizarte.</p>
           <a class="btn btn-primary" href="{% url 'tasks:task-create' %}">Crear mi primera tarea</a>
         {% endif %}
       </div>

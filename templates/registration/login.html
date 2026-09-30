@@ -1,19 +1,24 @@
 {% extends "base.html" %}
 
 {% comment %}
-  Login con AuthenticationForm de Django (django.contrib.auth.views.LoginView).
+  Login con LoginForm (subclase de AuthenticationForm de Django). Las clases
+  de los widgets las aplica BootstrapWidgetMixin, porque desde un template no
+  se pueden mutar los attrs del widget.
   Contexto: form.
 {% endcomment %}
 
 {% block title %}Iniciar sesión · Gestor de tareas{% endblock %}
 
+{% block description %}Entrá a tu cuenta para gestionar tus tareas.{% endblock %}
+
 {% block content %}
 
   <div class="row justify-content-center">
     <div class="col-12 col-md-7 col-lg-5">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h1 class="h4 mb-3 text-center">Iniciar sesión</h1>
+      <div class="card">
+        <div class="card-body p-4 p-lg-5">
+          <h1 class="apple-page-title text-center mb-1">Iniciar sesión</h1>
+          <p class="apple-lede text-center mx-auto mb-4">Entrá para ver tus tareas.</p>
 
           {% if form.non_field_errors %}
             <div class="alert alert-danger" role="alert">
@@ -37,10 +42,14 @@
               </div>
             {% endfor %}
 
-            {# next permite que LoginView vuelva a la página que el visitor intentaba abrir. #}
+            {% comment %}
+              next permite que LoginView vuelva a la página que el visitante
+              intentaba abrir. El campo ya lo agrega Django; sólo se conserva
+              el valor si viene por querystring.
+            {% endcomment %}
             {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
-            <div class="d-grid">
+            <div class="d-grid mt-4">
               <button type="submit" class="btn btn-primary">Entrar</button>
             </div>
           </form>

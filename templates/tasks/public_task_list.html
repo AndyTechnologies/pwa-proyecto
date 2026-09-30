@@ -9,15 +9,17 @@
 
 {% block title %}Tareas públicas · Gestor de tareas{% endblock %}
 
+{% block description %}Tareas que cualquier persona puede leer.{% endblock %}
+
 {% block content %}
 
-  <div class="mb-3">
-    <h1 class="h3 mb-1">Tareas públicas</h1>
-    <p class="text-body-secondary mb-0">
-      Estas tareas están marcadas como públicas: cualquiera puede leerlas, incluso sin iniciar sesión.
-      Sus autores no pueden editarlas desde esta pantalla.
+  <header class="mb-4">
+    <h1 class="apple-page-title mb-1">Tareas públicas</h1>
+    <p class="apple-lede mb-0">
+      Estas tareas están marcadas como públicas: cualquiera puede leerlas, incluso sin iniciar
+      sesión. Sus autores no pueden editarlas desde esta pantalla.
     </p>
-  </div>
+  </header>
 
   {% if tasks %}
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
@@ -27,18 +29,24 @@
         </div>
       {% endfor %}
     </div>
+    <a class="btn btn-link apple-back ps-0 mt-4" href="{% url 'tasks:task-list' %}">← Volver a mis tareas</a>
   {% else %}
-    <div class="card shadow-sm text-center">
+    {% comment %}
+      Para un visitante anónimo el único camino útil es registrarse o entrar:
+      ambos se ofrecen, en vez de un enlace a /tasks/ que lo rechaza.
+    {% endcomment %}
+    <div class="card apple-empty text-center">
       <div class="card-body py-5">
-        <h2 class="h5 card-title">Todavía no hay tareas públicas</h2>
-        <p class="card-text text-body-secondary">
+        <h2 class="h5 apple-empty-title">Todavía no hay tareas públicas</h2>
+        <p class="text-body-secondary">
           Nadie marcó una tarea como pública por el momento. Volvé a mirar más tarde.
         </p>
-        <a class="btn btn-outline-secondary" href="{% url 'tasks:task-list' %}">Ir a mis tareas</a>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+          <a class="btn btn-primary" href="{% url 'register' %}">Crear cuenta</a>
+          <a class="btn btn-outline-secondary" href="{% url 'login' %}">Iniciar sesión</a>
+        </div>
       </div>
     </div>
   {% endif %}
-
-  <a class="btn btn-link ps-0 mt-3" href="{% url 'tasks:task-list' %}">← Volver a mis tareas</a>
 
 {% endblock %}

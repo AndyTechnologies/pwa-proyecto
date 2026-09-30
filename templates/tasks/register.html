@@ -8,15 +8,17 @@
 
 {% block title %}Crear cuenta · Gestor de tareas{% endblock %}
 
+{% block description %}Creá una cuenta para gestionar tus tareas.{% endblock %}
+
 {% block content %}
 
   <div class="row justify-content-center">
     <div class="col-12 col-md-8 col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h1 class="h4 mb-1 text-center">Crear cuenta</h1>
-          <p class="text-center text-body-secondary mb-3">
-            Después de registrarte vas a poder crear y gestionar tus tareas.
+      <div class="card">
+        <div class="card-body p-4 p-lg-5">
+          <h1 class="apple-page-title text-center mb-1">Crear cuenta</h1>
+          <p class="apple-lede text-center mx-auto mb-4">
+            Después vas a poder crear y gestionar tus tareas.
           </p>
 
           {% if form.non_field_errors %}
@@ -44,7 +46,7 @@
               </div>
             {% endfor %}
 
-            <div class="d-grid">
+            <div class="d-grid mt-4">
               <button type="submit" class="btn btn-primary">Crear cuenta</button>
             </div>
           </form>

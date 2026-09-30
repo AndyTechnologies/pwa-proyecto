@@ -6,8 +6,8 @@
   con `context_object_name = "task"`, ver reporte).
 
   Las clases de control (form-control / form-select) se agregan sobre el widget
-  desde tasks/forms.py, porque el template no puede mutar `widget.attrs`.
-  Ver tasks/forms.py → TaskForm.__init__ ( reporte de cambios pendientes ).
+  desde tasks/forms.py → BootstrapWidgetMixin, porque el template no puede
+  mutar `widget.attrs` y django-widget-tweaks no es dependencia (RNF-12).
 {% endcomment %}
 
 {% block title %}{% if task %}Editar tarea{% else %}Nueva tarea{% endif %} · Gestor de tareas{% endblock %}
@@ -17,7 +17,12 @@
   <div class="row justify-content-center">
     <div class="col-12 col-lg-8">
 
-      <h1 class="h3 mb-3">{% if task %}Editar tarea{% else %}Nueva tarea{% endif %}</h1>
+      <a class="btn btn-link apple-back ps-0 mb-3" href="{% url 'tasks:task-list' %}">← Volver a mis tareas</a>
+
+      <h1 class="apple-page-title mb-1">{% if task %}Editar tarea{% else %}Nueva tarea{% endif %}</h1>
+      <p class="apple-lede mb-4">
+        {% if task %}Modificá los datos y guardá los cambios.{% else %}Definí qué hay que hacer y cuándo vence.{% endif %}
+      </p>
 
       {% if form.non_field_errors %}
         <div class="alert alert-danger" role="alert">
@@ -28,36 +33,40 @@
         </div>
       {% endif %}
 
-      <form method="post" novalidate>
-        {% csrf_token %}
+      <div class="card">
+        <div class="card-body p-4">
+          <form method="post" novalidate>
+            {% csrf_token %}
 
-        {% for field in form %}
-          <div class="mb-3">
-            {% if field.field.widget.input_type == 'checkbox' %}
-              <div class="form-check">
-                {{ field }}
-                <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% for field in form %}
+              <div class="mb-3">
+                {% if field.field.widget.input_type == 'checkbox' %}
+                  <div class="form-check">
+                    {{ field }}
+                    <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  </div>
+                {% else %}
+                  <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                {% endif %}
+
+                {% if field.help_text %}
+                  <div class="form-text">{{ field.help_text }}</div>
+                {% endif %}
+
+                {% for error in field.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
               </div>
-            {% else %}
-              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-              {{ field }}
-            {% endif %}
-
-            {% if field.help_text %}
-              <div class="form-text">{{ field.help_text }}</div>
-            {% endif %}
-
-            {% for error in field.errors %}
-              <div class="invalid-feedback d-block">{{ error }}</div>
             {% endfor %}
-          </div>
-        {% endfor %}
 
-        <div class="d-flex flex-wrap gap-2">
-          <button type="submit" class="btn btn-primary">{% if task %}Guardar cambios{% else %}Crear tarea{% endif %}</button>
-          <a class="btn btn-outline-secondary" href="{% url 'tasks:task-list' %}">Cancelar</a>
+            <div class="d-flex flex-wrap gap-2 mt-4">
+              <button type="submit" class="btn btn-primary">{% if task %}Guardar cambios{% else %}Crear tarea{% endif %}</button>
+              <a class="btn btn-outline-secondary" href="{% url 'tasks:task-list' %}">Cancelar</a>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
 
     </div>
   </div>

@@ -10,12 +10,15 @@
 
 {% block content %}
 
-  <a class="btn btn-link ps-0 mb-2" href="{% url 'tasks:task-list' %}">← Volver a mis tareas</a>
+  {% comment %}
+    Volver: mismo destino que la lista, con una dirección de salida explícita.
+  {% endcomment %}
+  <a class="btn btn-link apple-back ps-0 mb-3" href="{% url 'tasks:task-list' %}">← Volver a mis tareas</a>
 
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-        <h1 class="h3 mb-1{% if task.completed %} text-body-secondary text-decoration-line-through{% endif %}">{{ task.title }}</h1>
+  <article class="card{% if task.completed %} task-done{% endif %}">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+        <h1 class="apple-page-title mb-0 task-title">{{ task.title }}</h1>
         {% if task.completed %}
           <span class="badge bg-success">Completada</span>
         {% else %}
@@ -23,7 +26,7 @@
         {% endif %}
       </div>
 
-      <p class="mb-4{% if task.completed %} text-body-secondary text-decoration-line-through{% endif %}">{{ task.description|linebreaksbr }}</p>
+      <div class="mb-4">{{ task.description|linebreaksbr }}</div>
 
       <dl class="row mb-0">
         <dt class="col-sm-3">Vencimiento</dt>
@@ -46,6 +49,10 @@
           {% endif %}
         </dd>
 
+        {% comment %}
+          Cada nivel de visibilidad explica qué puede hacer cada quién, para
+          que la etiqueta sola no obligue a adivinar.
+        {% endcomment %}
         <dt class="col-sm-3">Visibilidad</dt>
         <dd class="col-sm-9">
           {% if task.visibility == 'public' %}
@@ -61,7 +68,7 @@
           {% else %}
             <span class="badge bg-secondary">Privada</span>
             <p class="small text-body-secondary mb-0 mt-1">
-              Esta tarea es privada: solo vos podés verla y modificarla. Nadie más tiene acceso.
+              Esta tarea es privada: sólo vos podés verla y modificarla. Nadie más tiene acceso.
             </p>
           {% endif %}
         </dd>
@@ -83,22 +90,22 @@
       </dl>
     </div>
 
-    <div class="card-footer bg-transparent d-flex flex-wrap gap-2">
+    <div class="card-footer bg-transparent d-flex flex-wrap gap-2 p-4">
       {% if is_owner %}
         <a class="btn btn-primary" href="{% url 'tasks:task-update' task.pk %}">Editar</a>
         <a class="btn btn-outline-danger" href="{% url 'tasks:task-delete' task.pk %}">Eliminar</a>
-        <form method="post" action="{% url 'tasks:task-toggle' task.pk %}">
+        <form method="post" action="{% url 'tasks:task-toggle' task.pk %}" class="d-inline">
           {% csrf_token %}
           <button type="submit" class="btn btn-outline-secondary">
             {% if task.completed %}Marcar como pendiente{% else %}Marcar como completada{% endif %}
           </button>
         </form>
       {% else %}
-        <div class="alert alert-secondary mb-0 py-2" role="alert">
+        <div class="alert alert-secondary mb-0 py-2" role="status">
           Solo lectura: no sos el propietario de esta tarea.
         </div>
       {% endif %}
     </div>
-  </div>
+  </article>
 
 {% endblock %}
