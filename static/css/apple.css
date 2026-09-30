@@ -81,6 +81,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   /* Dynamic Type: let the user's own font size drive the layout. */
   text-size-adjust: 100%;
+  /* The system face ships optical-size axes; let the browser pick the right
+     letterforms per size instead of one static cut. */
+  font-optical-sizing: auto;
 }
 
 /* Large text wants tighter tracking and tighter leading. */
