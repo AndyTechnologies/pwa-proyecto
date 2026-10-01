@@ -15,7 +15,13 @@
   {% endcomment %}
   <link rel="stylesheet" href="{% static 'css/apple.css' %}">
 </head>
-<body class="d-flex flex-column min-vh-100">
+{% comment %}
+  El shell (height, flex, overflow) lo maneja apple.css con 100dvh.
+  Ojo: NO usar las utilidades de Bootstrap min-vh-100 / flex-grow-1 acá
+  porque emiten `!important` (min-height:100vh!important) y pisarían el
+  100dvh, quebrando el fix del scroll. Una sola fuente de verdad.
+{% endcomment %}
+<body>
 
   {% comment %}
     Cromo flotante: única superficie translúcida de la app. El contenido
@@ -83,18 +89,29 @@
     </div>
   </nav>
 
-  <main class="container py-4 py-lg-5 flex-grow-1">
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert {% if 'success' in message.tags %}alert-success{% elif 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% else %}alert-info{% endif %} alert-dismissible fade show"
-             role="status">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
+  {% comment %}
+    main usa `flex: 1 0 auto` desde apple.css: crece para absorber la holgura
+    (así el footer queda al fondo sin que el documento exceda el viewport) y
+    no se comprime. El contenedor `container` de Bootstrap es sólo ancho y
+    centrado, no display:flex, así que conviven sin conflicto.
+    La animación de entrada va en un hijo, NO en main: un translateY sobre el
+    elemento más externo extendería el documento y aparecería un scroll en una
+    página que no tiene nada que scrollear.
+  {% endcomment %}
+  <main class="container py-4 py-lg-5">
+    <div class="apple-enter">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert {% if 'success' in message.tags %}alert-success{% elif 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% else %}alert-info{% endif %} alert-dismissible fade show"
+               role="status">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
 
-    {% block content %}{% endblock %}
+      {% block content %}{% endblock %}
+    </div>
   </main>
 
   <footer class="border-top py-4 mt-auto">

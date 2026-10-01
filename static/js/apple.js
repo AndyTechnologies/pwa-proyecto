@@ -132,28 +132,18 @@
   }
 
   /* ---------------------------------------------------------------------
-   * 3. Entrance
-   * ------------------------------------------------------------------- */
-
-  /*
-   * Main is marked as entering once per page load. The animation is defined in
-   * CSS and disabled entirely under prefers-reduced-motion, so this only adds
-   * a class — it never moves anything by itself.
-   */
-  function initEntrance() {
-    var main = document.querySelector("main");
-    if (main) {
-      main.classList.add("apple-enter");
-    }
-  }
-
-  /* ---------------------------------------------------------------------
-   * 4. Boot
+   * 3. Boot
+   *
+   * The entrance animation is NOT handled here on purpose: the
+   * `.apple-enter` wrapper ships in the markup and CSS animates it, which
+   * means the entrance works with JavaScript disabled and there is no flash
+   * of unstyled content waiting for DOMContentLoaded. Anything this file did
+   * to main would also have risked extending the document and raising a
+   * scrollbar on a short page.
    * ------------------------------------------------------------------- */
 
   function boot() {
     initTheme();
-    initEntrance();
     initPressFeedback();
   }
 

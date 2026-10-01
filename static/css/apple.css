@@ -1,138 +1,316 @@
 /*
- * apple.css — design system for the Task Manager.
+ * apple.css — Apple's design system, translated for a Bootstrap 5 web app.
  *
- * Apple's approach, translated for a Bootstrap 5 web app. Three ideas drive
- * everything here:
+ * This is not "Bootstrap with a blur filter". It replaces Bootstrap's design
+ * tokens with Apple's actual system palette and type scale, so every Bootstrap
+ * component (buttons, forms, badges, tables, alerts) inherits Apple's colours
+ * and typography without being re-implemented one class at a time.
  *
- *   1. Response kills latency. Feedback lands on pointer-down, not on release,
- *      so the interface never feels dead while you wait.
- *   2. Motion is a conversation. Transitions start from the value currently on
- *      screen, use a critically damped spring-like curve, and never overshoot
- *      unless a flick carried momentum in. Nothing here bounces.
- *   3. Restraint. Translucency is used on exactly one surface (the floating
- *      navbar). Stacking translucent layers collapses legibility, so it is used
- *      once, deliberately.
+ * Loaded AFTER bootstrap.min.css, so these values win on specificity ties while
+ * Bootstrap keeps providing layout, utilities and components.
  *
- * Loaded AFTER bootstrap.min.css, so every value here wins on specificity ties
- * while Bootstrap keeps supplying layout, utilities and components.
+ * Four ideas drive the file:
+ *   1. Response kills latency. Feedback lands on pointer-down, not on release.
+ *   2. Motion is a conversation. Critically damped, start from the on-screen
+ *      value, never overshoot unless a flick carried momentum. Nothing here
+ *      overshoots.
+ *   3. Restraint. One translucent surface. Stacking translucent layers
+ *      collapses legibility.
+ *   4. Honour the user's preferences: motion, transparency and contrast are
+ *      three independent switches.
+ *
+ * Colour values are Apple's Human Interface Guidelines system colours.
  */
 
-/* ---------------------------------------------------------------------------
- * 1. Tokens
- * ------------------------------------------------------------------------ */
+/* ===========================================================================
+ * 1. APPLE SYSTEM COLOURS
+ * ---------------------------------------------------------------------------
+ * Overriding the --bs-* tokens (rather than hardcoding hex on components) is
+ * what makes the whole app Apple's without touching a single template.
+ * ======================================================================== */
 
-:root {
-  /*
-   * Motion. A spring has no fixed duration; "response" is roughly how fast it
-   * settles. 1.0 = critically damped, i.e. no overshoot — Apple's house style
-   * for UI that was not thrown by the user. Nothing here overshoots.
-   */
-  --apple-ease: cubic-bezier(0.32, 0.72, 0, 1);      /* the "smooth" standard */
-  --apple-ease-out: cubic-bezier(0.16, 1, 0.3, 1);   /* decelerate to rest */
-  --apple-response: 320ms;                          /* move / panel work */
-  --apple-response-fast: 180ms;                     /* press feedback */
-  --apple-response-slow: 480ms;                     /* material arrival */
+:root,
+[data-bs-theme="light"] {
+  color-scheme: light;
 
-  /* Depth. Bigger surfaces read thicker: more blur, deeper shadow. */
-  --apple-blur-nav: 20px;
-  --apple-blur-card: 0px;
+  /* -- Apple system colours: light -- */
+  --apple-blue: #007aff;          /* systemBlue */
+  --apple-green: #34c759;         /* systemGreen */
+  --apple-indigo: #5856d6;        /* systemIndigo */
+  --apple-orange: #ff9500;        /* systemOrange */
+  --apple-pink: #ff2d55;          /* systemPink */
+  --apple-purple: #af52de;         /* systemPurple */
+  --apple-red: #ff3b30;           /* systemRed */
+  --apple-teal: #30b0c7;          /* systemTeal */
+  --apple-yellow: #ffcc00;        /* systemYellow */
+
+  /* -- Backgrounds: systemGroupedBackground -- */
+  --apple-bg: #ffffff;            /* systemBackground */
+  --apple-bg-grouped: #f2f2f7;    /* systemGroupedBackground */
+  --apple-bg-secondary: #ffffff;
+  --apple-bg-elevated: #ffffff;
+
+  /* -- Labels: Apple's semitransparent greys, not flat grey -- */
+  --apple-label: #000000;                     /* label */
+  --apple-label-secondary: rgb(60 60 67 / 0.6);   /* secondaryLabel */
+  --apple-label-tertiary: rgb(60 60 67 / 0.3);    /* tertiaryLabel */
+  --apple-label-quaternary: rgb(60 60 67 / 0.18); /* quaternaryLabel */
+
+  /* -- Fills: Apple's layered translucency greys -- */
+  --apple-fill: rgb(118 118 128 / 0.20);        /* systemFill */
+  --apple-fill-secondary: rgb(118 118 128 / 0.16);
+  --apple-fill-tertiary: rgb(118 118 128 / 0.12);
+  --apple-fill-quaternary: rgb(116 116 128 / 0.08);
+
+  /* -- Separators -- */
+  --apple-separator: rgb(60 60 67 / 0.29);
+  --apple-separator-opaque: #c6c6c8;
+
+  /* -- Material: Apple's real toolbar material, not invented -- */
+  --apple-material: rgb(249 249 249 / 0.72);
+  --apple-material-edge: rgb(255 255 255 / 0.55);
+
+  /* -- Map onto Bootstrap's tokens -- */
+  --bs-body-bg: var(--apple-bg-grouped);
+  --bs-body-bg-rgb: 242, 242, 247;
+  --bs-body-color: var(--apple-label);
+  --bs-body-color-rgb: 0, 0, 0;
+  --bs-secondary-color: var(--apple-label-secondary);
+  --bs-secondary-color-rgb: 60, 60, 67;
+  --bs-secondary-bg: var(--apple-bg-secondary);
+  --bs-tertiary-color: var(--apple-label-tertiary);
+  --bs-tertiary-bg: var(--apple-bg);
+  --bs-emphasis-color: var(--apple-label);
+
+  --bs-primary: var(--apple-blue);
+  --bs-primary-rgb: 0, 122, 255;
+  --bs-link-color: var(--apple-blue);
+  --bs-link-color-rgb: 0, 122, 255;
+  --bs-link-hover-color: #0062cc;
+
+  --bs-danger: var(--apple-red);
+  --bs-danger-rgb: 255, 59, 48;
+  --bs-warning: var(--apple-orange);
+  --bs-warning-rgb: 255, 149, 0;
+  --bs-success: var(--apple-green);
+  --bs-success-rgb: 52, 199, 89;
+  --bs-info: var(--apple-teal);
+  --bs-info-rgb: 48, 176, 199;
+
+  --bs-border-color: var(--apple-separator);
+  --bs-border-color-translucent: var(--apple-separator);
+
+  --bs-border-radius: 0.625rem;
+  --bs-border-radius-sm: 0.5rem;
+  --bs-border-radius-lg: 0.875rem;
+  --bs-border-radius-xl: 1.25rem;
+
+  --bs-focus-ring-color: rgb(0 122 255 / 0.35);
+  --bs-focus-ring-width: 0.25rem;
+
+  /* -- Motion: critically damped, no overshoot. "Response" is how fast a
+        spring settles, not a duration: 0.3-0.4s for move/panel work. -- */
+  --apple-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --apple-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --apple-response-fast: 180ms;   /* press feedback */
+  --apple-response: 320ms;        /* move / panel */
+  --apple-response-slow: 480ms;   /* material arrival */
+
   --apple-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.06);
   --apple-shadow-md: 0 2px 6px rgb(0 0 0 / 0.05), 0 8px 24px rgb(0 0 0 / 0.07);
   --apple-shadow-lg: 0 4px 12px rgb(0 0 0 / 0.06), 0 16px 48px rgb(0 0 0 / 0.10);
 
-  /* Radii. Continuous curvature reads as a material, not a box. */
   --apple-radius-sm: 8px;
   --apple-radius: 12px;
   --apple-radius-lg: 16px;
   --apple-radius-xl: 22px;
-
-  /* Vibrancy. Text over translucency needs contrast and weight, not grey. */
-  --apple-nav-fg: rgb(22 22 24 / 0.92);
-  --apple-vibrant: rgb(22 22 24 / 0.88);
-
-  /* Tracking. Size-specific by design: large text tightens, body stays at 0. */
-  --apple-track-display: -0.022em;
-  --apple-track-heading: -0.014em;
-  --apple-track-body: 0;
-  --apple-track-caps: 0.06em;
 }
 
-/* Dark theme mirrors, so the translucent navbar stays legible either way. */
 [data-bs-theme="dark"] {
-  --apple-nav-fg: rgb(245 245 247 / 0.92);
-  --apple-vibrant: rgb(235 235 245 / 0.86);
+  color-scheme: dark;
+
+  /* -- Apple system colours: dark (the high-chroma variants) -- */
+  --apple-blue: #0a84ff;
+  --apple-green: #30d158;
+  --apple-indigo: #5e5ce6;
+  --apple-orange: #ff9f0a;
+  --apple-pink: #ff375f;
+  --apple-purple: #bf5af2;
+  --apple-red: #ff453a;
+  --apple-teal: #40c8e0;
+  --apple-yellow: #ffd60a;
+
+  /* -- Backgrounds: true black base, elevated greys on top -- */
+  --apple-bg: #1c1c1e;          /* secondarySystemBackground */
+  --apple-bg-grouped: #000000;  /* systemGroupedBackground */
+  --apple-bg-secondary: #2c2c2e; /* tertiarySystemBackground */
+  --apple-bg-elevated: #1c1c1e;
+
+  /* -- Labels -- */
+  --apple-label: #ffffff;
+  --apple-label-secondary: rgb(235 235 245 / 0.6);
+  --apple-label-tertiary: rgb(235 235 245 / 0.3);
+  --apple-label-quaternary: rgb(235 235 245 / 0.18);
+
+  /* -- Fills: lighter base, because they sit on black -- */
+  --apple-fill: rgb(120 120 128 / 0.36);
+  --apple-fill-secondary: rgb(120 120 128 / 0.32);
+  --apple-fill-tertiary: rgb(120 120 128 / 0.24);
+  --apple-fill-quaternary: rgb(120 120 128 / 0.18);
+
+  --apple-separator: rgb(84 84 88 / 0.65);
+  --apple-separator-opaque: #38383a;
+
+  --apple-material: rgb(28 28 30 / 0.72);
+  --apple-material-edge: rgb(255 255 255 / 0.10);
+
+  --bs-body-bg: var(--apple-bg-grouped);
+  --bs-body-bg-rgb: 0, 0, 0;
+  --bs-body-color: var(--apple-label);
+  --bs-body-color-rgb: 255, 255, 255;
+  --bs-secondary-color: var(--apple-label-secondary);
+  --bs-secondary-color-rgb: 235, 235, 245;
+  --bs-secondary-bg: var(--apple-bg);
+  --bs-tertiary-color: var(--apple-label-tertiary);
+  --bs-tertiary-bg: var(--apple-bg-secondary);
+  --bs-emphasis-color: var(--apple-label);
+
+  --bs-link-color: var(--apple-blue);
+  --bs-link-color-rgb: 10, 132, 255;
+  --bs-link-hover-color: #409cff;
+
+  --bs-danger-rgb: 255, 69, 58;
+  --bs-warning-rgb: 255, 159, 10;
+  --bs-success-rgb: 48, 209, 88;
+  --bs-info-rgb: 64, 200, 224;
+
+  --bs-border-color: var(--apple-separator);
+  --bs-border-color-translucent: var(--apple-separator);
+
   --apple-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.30), 0 1px 3px rgb(0 0 0 / 0.36);
   --apple-shadow-md: 0 2px 6px rgb(0 0 0 / 0.34), 0 8px 24px rgb(0 0 0 / 0.42);
   --apple-shadow-lg: 0 4px 12px rgb(0 0 0 / 0.38), 0 16px 48px rgb(0 0 0 / 0.50);
 }
 
-/* ---------------------------------------------------------------------------
- * 2. Typography — optical sizing, tracking and leading as a set
- * ------------------------------------------------------------------------ */
+/* ===========================================================================
+ * 2. SHELL — scroll only when the content needs it
+ * ---------------------------------------------------------------------------
+ * The app must fill exactly one viewport on a short page, so no scrollbar
+ * appears when there is nothing to scroll. `100dvh` rather than `100vh`:
+ * `vh` ignores the mobile browser's collapsing toolbar, which both leaves a
+ * gap and can force a scrollbar that is not needed.
+ * ======================================================================== */
+
+html {
+  /* Anchored to the real viewport; `100dvh` where supported, `100vh` below. */
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* `clip` prevents horizontal scrollbar from any transform, and unlike
+     `hidden` does not create a scroll container. */
+  overflow-x: clip;
+}
 
 body {
-  /* System stack first: it already ships optical sizing and tuning. */
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
-    system-ui, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+}
+
+/* main grows to absorb the slack so the footer sits at the bottom without the
+   document ever exceeding the viewport. `flex: 1 0 auto` — shrink 0 keeps a
+   tall page tall instead of compressing it to fit. */
+main {
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+/* ===========================================================================
+ * 3. TYPOGRAPHY — Apple's type scale
+ * ---------------------------------------------------------------------------
+ * Apple's tracking is NOT monotonic: the largest sizes get POSITIVE tracking
+ * and the mid sizes get NEGATIVE tracking, with the smallest size positive
+ * again. A single `letter-spacing` is wrong somewhere — this is the concrete
+ * reason the scale below exists.
+ *
+ *   34pt +0.374  ·  28pt +0.364  ·  22pt -0.260
+ *   20pt -0.474  ·  17pt -0.408  ·  16pt -0.320
+ *   15pt -0.240  ·  13pt -0.078  ·  12pt  0.000  ·  11pt +0.066
+ * ======================================================================== */
+
+body {
+  /* System faces first: they already ship Apple's optical sizing, tracking
+     tables and legibility tuning. */
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui,
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 1rem;
-  line-height: 1.5;
-  letter-spacing: var(--apple-track-body);
+  line-height: 1.47;             /* Apple's 17pt body leading */
+  letter-spacing: -0.022em;      /* body 17pt tracking */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Dynamic Type: let the user's own font size drive the layout. */
   text-size-adjust: 100%;
-  /* The system face ships optical-size axes; let the browser pick the right
-     letterforms per size instead of one static cut. */
   font-optical-sizing: auto;
 }
 
-/* Large text wants tighter tracking and tighter leading. */
-h1, h2, h3, h4, h5, h6, .display-1, .display-2, .display-3 {
-  font-weight: 600;
-  letter-spacing: var(--apple-track-heading);
+/* Display sizes switch to the display cut, which has tighter, more
+   geometric letterforms than the text face. */
+h1, .h1, h2, .h2, h3, .h3,
+.display-1, .display-2, .display-3, .display-4, .display-5, .display-6 {
+  font-family:
+    "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
   line-height: 1.15;
+  letter-spacing: -0.026em;      /* 20pt tracking */
 }
 
-h1, .h1, h2, .h2, h3, .h3 { letter-spacing: var(--apple-track-heading); }
+/* Page title: Apple's Large Title treatment (34pt, POSITIVE tracking). */
+.apple-page-title {
+  font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.125rem);
+  line-height: 1.1;
+  letter-spacing: 0.012em;       /* positive, as at 34pt */
+  font-weight: 700;
+}
 
-.display-1, .display-2, .display-3 {
-  letter-spacing: var(--apple-track-display);
-  line-height: 1.05;
+/* The supporting line under a title: 17pt secondary label, comfortable
+   leading, and a measure so the line does not run the full width. */
+.apple-lede {
+  color: var(--apple-label-secondary);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  letter-spacing: -0.022em;
+  max-width: 62ch;
+}
+
+/* Small text earns slight POSITIVE tracking for legibility (13pt -0.078
+   trending to 12pt 0 / 11pt +0.066). */
+.small, small, .form-text, .form-label {
+  font-size: 0.8125rem;
+  letter-spacing: -0.006em;
+}
+
+/* All-caps micro-labels need real tracking to stay readable. */
+.text-uppercase, .table > thead th, .badge.text-uppercase {
+  letter-spacing: 0.066em;       /* 11pt tracking */
+  font-weight: 600;
+}
+
+.badge, .form-label {
+  letter-spacing: -0.006em;
+  font-weight: 550;
 }
 
 /* Dense, information-heavy UI tightens its leading. */
 .table { line-height: 1.35; }
 
-/* Small text earns a touch of positive tracking for legibility. */
-.small, small, .badge, .form-text, .form-label {
-  letter-spacing: 0.01em;
-}
+/* ===========================================================================
+ * 4. RESPONSE — feedback on pointer-down
+ * ======================================================================== */
 
-/* All-caps micro-labels need real tracking to stay readable. */
-.text-uppercase, .badge.text-uppercase {
-  letter-spacing: var(--apple-track-caps);
-  font-weight: 600;
-}
-
-/* ---------------------------------------------------------------------------
- * 3. Response — feedback on pointer-down, never on release
- * ------------------------------------------------------------------------ */
-
-/*
- * The whole point: a press is acknowledged in one frame. Waiting for click
- * (touch-up) is what makes an interface feel dead.
- */
-.btn,
-.btn-sm,
-.nav-link,
-.navbar-brand,
-.form-control,
-.form-select,
-.form-check-input,
-.badge,
-a.card-link,
-.dropdown-item,
-.alert-dismissible .btn-close {
+.btn, .btn-sm, .nav-link, .navbar-brand, .form-control, .form-select,
+.form-check-input, .badge, .dropdown-item, .alert-dismissible .btn-close {
   transition:
     transform var(--apple-response-fast) var(--apple-ease-out),
     background-color var(--apple-response-fast) var(--apple-ease-out),
@@ -142,138 +320,174 @@ a.card-link,
     opacity var(--apple-response-fast) var(--apple-ease-out);
 }
 
-.btn:active,
-.btn-sm:active,
-a:active {
-  /* Slight compression under the finger: the object is being pushed. */
-  transform: scale(0.97);
-}
-
-/*
- * Set by apple.js on pointerdown so the acknowledgement lands in the same
- * frame, rather than waiting for the :active latch on touch engines.
- */
-.apple-pressed {
+/* The object is being pushed: it compresses under the finger. */
+.btn:active, .btn-sm:active, a:active, .apple-pressed {
   transform: scale(0.97);
   opacity: 0.92;
 }
 
-.form-control:focus,
-.form-select:focus,
-.form-check-input:focus {
-  /* Focus is a ring, not a colour swap, and it follows the spring. */
+/* Apple's focus ring: a soft blue halo, never a hard outline removal. */
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+  border-color: var(--apple-blue);
   box-shadow: 0 0 0 4px rgb(0 122 255 / 0.18);
-  border-color: rgb(0 122 255 / 0.65);
+  background-color: var(--apple-bg-secondary);
 }
 
-/* Keyboard users get an unmistakable ring. */
 :focus-visible {
-  outline: 2px solid rgb(0 122 255 / 0.9);
+  outline: 2px solid var(--apple-blue);
   outline-offset: 2px;
   border-radius: var(--apple-radius-sm);
 }
 
-.btn:focus-visible,
-.form-control:focus-visible,
-.form-select:focus-visible {
-  outline: 2px solid rgb(0 122 255 / 0.9);
-  outline-offset: 2px;
+/* Apple's filled / tinted button treatment. */
+.btn-primary {
+  --bs-btn-bg: var(--apple-blue);
+  --bs-btn-border-color: var(--apple-blue);
+  --bs-btn-hover-bg: #0062cc;
+  --bs-btn-hover-border-color: #0062cc;
+  --bs-btn-active-bg: #0058b0;
+  --bs-btn-active-border-color: #0058b0;
+  --bs-btn-disabled-bg: rgb(0 122 255 / 0.4);
+  --bs-btn-disabled-border-color: transparent;
+  font-weight: 590;
 }
 
-/* ---------------------------------------------------------------------------
- * 4. Materials and depth — one translucent surface, used once
- * ------------------------------------------------------------------------ */
+.btn-danger {
+  --bs-btn-bg: var(--apple-red);
+  --bs-btn-border-color: var(--apple-red);
+  --bs-btn-hover-bg: #d70015;
+  --bs-btn-hover-border-color: #d70015;
+  --bs-btn-active-bg: #bb0000;
+  --bs-btn-active-border-color: #bb0000;
+  --bs-btn-disabled-bg: rgb(255 59 48 / 0.4);
+  --bs-btn-disabled-border-color: transparent;
+  font-weight: 590;
+}
 
-/*
- * The navbar is the only floating chrome, so it is the only blurred material.
- * Content scrolls underneath it rather than being pushed by an opaque bar.
- */
+.btn-outline-secondary {
+  --bs-btn-color: var(--apple-label-secondary);
+  --bs-btn-border-color: var(--apple-separator);
+  --bs-btn-hover-bg: var(--apple-fill-quaternary);
+  --bs-btn-hover-border-color: var(--apple-label-tertiary);
+  --bs-btn-hover-color: var(--apple-label);
+  --bs-btn-active-bg: var(--apple-fill-tertiary);
+  --bs-btn-active-border-color: var(--apple-label-tertiary);
+  --bs-btn-active-color: var(--apple-label);
+}
+
+.btn-outline-danger {
+  --bs-btn-color: var(--apple-red);
+  --bs-btn-border-color: rgb(255 59 48 / 0.4);
+  --bs-btn-hover-bg: var(--apple-red);
+  --bs-btn-hover-border-color: var(--apple-red);
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-active-bg: #d70015;
+  --bs-btn-active-border-color: #d70015;
+  --bs-btn-active-color: #ffffff;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--apple-blue);
+  --bs-btn-border-color: rgb(0 122 255 / 0.4);
+  --bs-btn-hover-bg: var(--apple-blue);
+  --bs-btn-hover-border-color: var(--apple-blue);
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-active-bg: #0062cc;
+  --bs-btn-active-border-color: #0062cc;
+  --bs-btn-active-color: #ffffff;
+}
+
+.btn-dark {
+  --bs-btn-bg: var(--apple-label);
+  --bs-btn-border-color: var(--apple-label);
+  --bs-btn-hover-bg: var(--apple-label-secondary);
+  --bs-btn-hover-border-color: var(--apple-label-secondary);
+  --bs-btn-hover-color: var(--apple-bg);
+  --bs-btn-active-bg: var(--apple-label-tertiary);
+  --bs-btn-active-border-color: var(--apple-label-tertiary);
+  --bs-btn-active-color: var(--apple-bg);
+}
+
+/* ===========================================================================
+ * 5. MATERIALS — one translucent surface
+ * ======================================================================== */
+
 .navbar-apple {
   position: sticky;
   top: 0;
   z-index: 1030;
-  background: rgb(255 255 255 / 0.72);
-  backdrop-filter: saturate(180%) blur(var(--apple-blur-nav));
-  -webkit-backdrop-filter: saturate(180%) blur(var(--apple-blur-nav));
+  background: var(--apple-material);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   /* A bright top edge: light catching the material. */
-  border-bottom: 1px solid rgb(255 255 255 / 0.55);
-  box-shadow: 0 1px 0 rgb(0 0 0 / 0.04);
+  border-bottom: 1px solid var(--apple-material-edge);
 }
 
 /* Vibrancy: high contrast and real weight, never flat grey. */
 .navbar-apple .navbar-brand {
-  font-weight: 600;
-  letter-spacing: var(--apple-track-heading);
-  color: var(--apple-nav-fg);
+  font-weight: 640;
+  letter-spacing: -0.026em;
+  color: var(--apple-label);
 }
 
-.navbar-apple .navbar-brand:hover { color: var(--apple-nav-fg); }
+.navbar-apple .navbar-brand:hover { color: var(--apple-label); }
 
 .navbar-apple .nav-link {
-  color: var(--apple-vibrant);
+  color: var(--apple-label-secondary);
   font-weight: 450;
   border-radius: var(--apple-radius-sm);
   padding-inline: 0.7rem;
 }
 
-.navbar-apple .nav-link:hover { color: var(--apple-nav-fg); background: rgb(0 0 0 / 0.04); }
+.navbar-apple .nav-link:hover {
+  color: var(--apple-label);
+  background: var(--apple-fill-quaternary);
+}
 
-/* Anchor interactions to their source: the active pill grows from the link. */
+/* Anchor the active pill to its own link so the relationship is obvious. */
 .navbar-apple .nav-link.active {
-  color: var(--apple-nav-fg);
-  background: rgb(0 0 0 / 0.07);
-  font-weight: 550;
+  color: var(--apple-label);
+  background: var(--apple-fill-tertiary);
+  font-weight: 590;
   transform-origin: center;
 }
 
-[data-bs-theme="dark"] .navbar-apple {
-  background: rgb(28 28 30 / 0.72);
-  border-bottom-color: rgb(255 255 255 / 0.10);
-}
+[data-bs-theme="dark"] .navbar-apple .nav-link:hover { background: var(--apple-fill-tertiary); }
+[data-bs-theme="dark"] .navbar-apple .nav-link.active { background: var(--apple-fill-secondary); }
 
-[data-bs-theme="dark"] .navbar-apple .nav-link:hover { background: rgb(255 255 255 / 0.08); }
-[data-bs-theme="dark"] .navbar-apple .nav-link.active { background: rgb(255 255 255 / 0.14); }
-
-/* Cards: a material with a soft edge, not a bordered box. */
+/* Cards are opaque materials with soft edges — not translucent. Stacking a
+   translucent surface on the translucent navbar would collapse legibility. */
 .card {
-  border: 1px solid rgb(0 0 0 / 0.06);
+  --bs-card-bg: var(--apple-bg-secondary);
+  --bs-card-border-color: var(--apple-separator);
+  --bs-card-cap-bg: var(--apple-bg-secondary);
   border-radius: var(--apple-radius-lg);
   box-shadow: var(--apple-shadow-sm);
-  background-color: var(--bs-body-bg);
   transition:
     box-shadow var(--apple-response) var(--apple-ease),
     transform var(--apple-response) var(--apple-ease),
     border-color var(--apple-response) var(--apple-ease);
 }
 
-.card:hover {
-  /* Lift on approach, like a surface coming toward you. */
-  box-shadow: var(--apple-shadow-md);
-  border-color: rgb(0 0 0 / 0.09);
-}
+.card:hover { box-shadow: var(--apple-shadow-md); }
 
-[data-bs-theme="dark"] .card { border-color: rgb(255 255 255 / 0.10); }
-[data-bs-theme="dark"] .card:hover { border-color: rgb(255 255 255 / 0.16); }
-
-/* Interactive cards lift slightly; static ones must not move under the cursor. */
 .card-interactive { cursor: pointer; }
 .card-interactive:hover { transform: translateY(-2px); box-shadow: var(--apple-shadow-md); }
 .card-interactive:active { transform: translateY(0) scale(0.995); }
 
-/* Destructive confirmation gets a heavier, unmistakable edge. */
 .card-danger-apple {
-  border-color: rgb(220 53 69 / 0.35);
+  border-color: rgb(255 59 48 / 0.35);
   box-shadow: var(--apple-shadow-md);
 }
 
-/* ---------------------------------------------------------------------------
- * 5. Entrance — materialize rather than merely fade
- * ------------------------------------------------------------------------ */
+/* ===========================================================================
+ * 6. ENTRANCE — materialize, don't merely fade
+ * ---------------------------------------------------------------------------
+ * Applied to an inner wrapper, never to <main> itself: a translateY on the
+ * outermost element would extend the document and produce a scrollbar on a
+ * page that has nothing to scroll.
+ * ======================================================================== */
 
-/*
- * Content arrives once, gently. Blur and transform settle together so the page
- * reads as a surface arriving, not an opacity trick.
- */
 .apple-enter {
   animation: apple-materialize var(--apple-response-slow) var(--apple-ease) both;
 }
@@ -291,125 +505,142 @@ a:active {
   }
 }
 
-/* ---------------------------------------------------------------------------
- * 6. Badges and pills
- * ------------------------------------------------------------------------ */
+/* ===========================================================================
+ * 7. BADGES — Apple's semantic colour set
+ * ======================================================================== */
 
 .badge {
-  font-weight: 550;
-  letter-spacing: 0.01em;
+  font-weight: 590;
   border-radius: var(--apple-radius-sm);
   padding-inline: 0.5em;
+  letter-spacing: -0.006em;
 }
 
-.rounded-pill { border-radius: 999px; }
+.bg-primary { background-color: var(--apple-blue) !important; }
+.bg-danger { background-color: var(--apple-red) !important; }
+.bg-success { background-color: var(--apple-green) !important; }
+.bg-warning { background-color: var(--apple-orange) !important; }
+.bg-info { background-color: var(--apple-teal) !important; }
+.bg-secondary { background-color: var(--apple-label-tertiary) !important; color: var(--apple-label) !important; }
+.bg-dark { background-color: var(--apple-label-secondary) !important; color: var(--apple-bg) !important; }
 
 /* A completed task recedes instead of shouting. */
 .task-done .task-title {
-  color: var(--bs-secondary-color);
+  color: var(--apple-label-tertiary);
   text-decoration: line-through;
   text-decoration-thickness: 1px;
 }
 
-/* ---------------------------------------------------------------------------
- * 7. Empty states — say what is missing and what to do
- * ------------------------------------------------------------------------ */
+.rounded-pill { border-radius: 999px; }
 
-.apple-empty {
-  border: 1px dashed rgb(0 0 0 / 0.12);
-  border-radius: var(--apple-radius-lg);
-  background: transparent;
-  box-shadow: none;
-}
-
-.apple-empty .apple-empty-title { font-weight: 600; letter-spacing: var(--apple-track-heading); }
-
-[data-bs-theme="dark"] .apple-empty { border-color: rgb(255 255 255 / 0.14); }
-
-/* ---------------------------------------------------------------------------
- * 8. Wayfinding
- * ------------------------------------------------------------------------ */
-
-.apple-page-title {
-  font-weight: 650;
-  letter-spacing: var(--apple-track-display);
-  /* Optically sized rather than a fixed rem: grows with the user's text size. */
-  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
-  line-height: 1.15;
-}
-
-.apple-lede {
-  color: var(--bs-secondary-color);
-  /* Slightly looser leading than body: this is the page's orientation text. */
-  line-height: 1.5;
-  max-width: 62ch;
-}
+/* ===========================================================================
+ * 8. WAYFINDING
+ * ======================================================================== */
 
 .apple-back {
   text-decoration: none;
   font-weight: 500;
+  letter-spacing: -0.022em;
+  color: var(--apple-blue);
   border-radius: var(--apple-radius-sm);
 }
 
 .apple-back:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-/* ---------------------------------------------------------------------------
- * 9. Forms
- * ------------------------------------------------------------------------ */
+/* ===========================================================================
+ * 9. EMPTY STATES
+ * ======================================================================== */
 
-.form-control,
-.form-select {
-  border-radius: var(--apple-radius-sm);
-  border-color: rgb(0 0 0 / 0.14);
-  padding: 0.5rem 0.75rem;
-  /* Roomier tap target without changing the type size. */
-  min-height: 2.5rem;
+.apple-empty {
+  --bs-card-bg: transparent;
+  border: 1px dashed var(--apple-separator);
+  border-radius: var(--apple-radius-lg);
+  background: transparent;
+  box-shadow: none;
 }
 
-.form-control:focus,
-.form-select:focus { border-color: rgb(0 122 255 / 0.65); }
+.apple-empty:hover { box-shadow: none; }
 
-.form-label { font-weight: 500; margin-bottom: 0.35rem; }
+.apple-empty .apple-empty-title {
+  font-weight: 640;
+  letter-spacing: -0.026em;
+}
+
+/* ===========================================================================
+ * 10. FORMS
+ * ======================================================================== */
+
+.form-control, .form-select {
+  border-radius: var(--apple-radius-sm);
+  border-color: var(--apple-separator);
+  background-color: var(--apple-bg-secondary);
+  color: var(--apple-label);
+  padding: 0.5rem 0.75rem;
+  min-height: 2.5rem;   /* roomier tap target without changing type size */
+}
+
+.form-control::placeholder { color: var(--apple-label-tertiary); }
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--apple-blue);
+  background-color: var(--apple-bg-secondary);
+}
+
+.form-label { font-weight: 510; margin-bottom: 0.35rem; }
+
+.form-text { color: var(--apple-label-secondary); }
+
+.form-check-input {
+  border-color: var(--apple-label-tertiary);
+  background-color: transparent;
+}
+
+.form-check-input:checked {
+  background-color: var(--apple-blue);
+  border-color: var(--apple-blue);
+}
 
 /* Inline validation: the field turns red, the message is already visible. */
-.form-control.is-invalid,
-.form-select.is-invalid {
-  border-color: rgb(220 53 69 / 0.7);
-  box-shadow: 0 0 0 4px rgb(220 53 69 / 0.12);
+.form-control.is-invalid, .form-select.is-invalid {
+  border-color: var(--apple-red);
+  box-shadow: 0 0 0 4px rgb(255 59 48 / 0.12);
 }
 
-.invalid-feedback { font-weight: 450; }
+.invalid-feedback { color: var(--apple-red); font-weight: 450; }
 
-/* ---------------------------------------------------------------------------
- * 10. Tables
- * ------------------------------------------------------------------------ */
+/* ===========================================================================
+ * 11. TABLES
+ * ======================================================================== */
 
 .table {
   --bs-table-bg: transparent;
-  border-radius: var(--apple-radius);
-  overflow: hidden;
+  --bs-table-color: var(--apple-label);
+  --bs-table-striped-bg: transparent;
+  --bs-table-hover-bg: var(--apple-fill-quaternary);
+  color: var(--apple-label);
 }
 
 .table > thead th {
-  font-size: 0.78rem;
+  font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: var(--apple-track-caps);
   text-transform: uppercase;
-  color: var(--bs-secondary-color);
+  color: var(--apple-label-secondary);
   background: transparent;
-  border-bottom-color: rgb(0 0 0 / 0.10);
+  border-bottom-color: var(--apple-separator);
+  border-top: 0;
   white-space: nowrap;
 }
 
-.table > tbody > tr { transition: background-color var(--apple-response-fast) var(--apple-ease-out); }
-.table > tbody > tr:hover { background-color: rgb(0 0 0 / 0.03); }
+.table > tbody > tr {
+  border-bottom-color: var(--apple-separator);
+  transition: background-color var(--apple-response-fast) var(--apple-ease-out);
+}
 
-[data-bs-theme="dark"] .table > tbody > tr:hover { background-color: rgb(255 255 255 / 0.05); }
-[data-bs-theme="dark"] .table > thead th { border-bottom-color: rgb(255 255 255 / 0.12); }
+.table > tbody > tr:last-child { border-bottom-width: 0; }
 
-/* ---------------------------------------------------------------------------
- * 11. Alerts — four feedback kinds, consistent shape
- * ------------------------------------------------------------------------ */
+/* ===========================================================================
+ * 12. ALERTS
+ * ======================================================================== */
 
 .alert {
   border-radius: var(--apple-radius);
@@ -417,15 +648,18 @@ a:active {
   font-weight: 450;
 }
 
-/* ---------------------------------------------------------------------------
- * 12. Reduced motion — gentler, not absent
- * ------------------------------------------------------------------------ */
+.alert-success { --bs-alert-color: var(--apple-green); }
+.alert-danger { --bs-alert-color: var(--apple-red); }
+.alert-warning { --bs-alert-color: var(--apple-orange); }
+.alert-info { --bs-alert-color: var(--apple-blue); }
 
-/*
+/* ===========================================================================
+ * 13. USER PREFERENCES — three independent switches
+ * ---------------------------------------------------------------------------
  * Reduced motion does not mean no feedback: it means no vestibular load.
- * Slides and springs become short opacity cross-fades. The user still sees
- * that something happened.
- */
+ * The press state survives as a cross-fade.
+ * ======================================================================== */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -438,54 +672,44 @@ a:active {
 
   .apple-enter { animation: none; opacity: 1; transform: none; filter: none; }
 
-  .btn:active,
-  .btn-sm:active,
-  a:active,
-  .card-interactive:hover,
-  .card-interactive:active {
+  .btn:active, .btn-sm:active, a:active, .apple-pressed,
+  .card-interactive:hover, .card-interactive:active {
     transform: none;
   }
 
-  /* Keep a visible press state, as a cross-fade instead of a scale. */
-  .btn:active { opacity: 0.6; }
-  .apple-pressed { transform: none; opacity: 0.6; }
+  .btn:active, .apple-pressed { opacity: 0.6; }
   .card-interactive:hover { box-shadow: var(--apple-shadow-sm); }
 }
 
 /* Frostier, solid material where translucency hurts readability. */
 @media (prefers-reduced-transparency: reduce) {
   .navbar-apple {
-    background: var(--bs-body-bg) !important;
+    background: var(--apple-bg) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    border-bottom: 1px solid rgb(0 0 0 / 0.12) !important;
+    border-bottom: 1px solid var(--apple-separator) !important;
   }
-
-  [data-bs-theme="dark"] .navbar-apple { border-bottom-color: rgb(255 255 255 / 0.14) !important; }
-  .card { background-color: var(--bs-body-bg) !important; }
+  .card { --bs-card-bg: var(--apple-bg-secondary) !important; }
 }
 
 /* Near-solid surfaces with a defined, contrasting edge. */
 @media (prefers-contrast: more) {
   .navbar-apple {
-    background: var(--bs-body-bg) !important;
+    background: var(--apple-bg) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     border-bottom: 2px solid currentColor !important;
   }
-
   .card { border: 2px solid currentColor !important; }
   .btn { border-width: 2px !important; }
-  .form-control,
-  .form-select { border-width: 2px !important; }
+  .form-control, .form-select { border-width: 2px !important; }
   .table > tbody > tr:hover { background-color: transparent; }
-
   :focus-visible { outline-width: 3px !important; }
 }
 
-/* ---------------------------------------------------------------------------
- * 13. Print
- * ------------------------------------------------------------------------ */
+/* ===========================================================================
+ * 14. PRINT
+ * ======================================================================== */
 
 @media print {
   .navbar-apple { position: static; background: none; backdrop-filter: none; box-shadow: none; }
