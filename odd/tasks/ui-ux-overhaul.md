@@ -114,3 +114,57 @@ when the defect was reintroduced. Green tests alone do not demonstrate detection
 Two guards failed on first run for test-side reasons (missing login; Django's
 test client does not serve `/static/`), both corrected rather than papered over.
 
+
+---
+
+## Phase 2 — accent, gate, and scroll
+
+Branch: `feat/apple-palette-and-staff-gate` (branched from `master` at `7dee602`)
+
+Phase 1 delivered "Bootstrap Plus A Blur Filter". The palette was Bootstrap's
+untouched; the type scale was one `letter-spacing` value; the nav advertised an
+admin area most users cannot enter; and a short page still grew a scrollbar.
+
+| Commit | Task | Outcome |
+| --- | --- | --- |
+| `23c8006` | 1 — nav gate | "Administrar sitio" gated on `is_staff`. 9 tests split across usability and security. 305 tests. |
+| `daf80c9` | 2+3+4 — palette, type, scroll | `apple.css` rewritten onto Apple's real system colours and non-monotonic tracking; shell rebuilt for `100dvh`. 25 guards. 330 tests. |
+
+### Defects found and fixed
+
+4. **The nav offered the admin to users who cannot use it** — a dead-end redirect
+   that also confirmed an administrative area exists. Gated on `is_staff`.
+   Deliberately *not* a security boundary: `AdminSite.has_permission` is, and the
+   nav never participated in it, so the tests assert the two separately.
+5. **`min-vh-100` silently defeated the `100dvh` fix** — Bootstrap's utility
+   compiles to `min-height:100vh!important`, which outranks `apple.css`. Caught
+   only by checking the computed value of the utility, not by reading the CSS.
+6. **The entrance animation extended the document** — a `translateY` on `<main>`
+   pushed the document height past the viewport, so a page with nothing to scroll
+   still scrolled. Moved to an inner `.apple-enter` wrapper, which also let the
+   entrance drop its JavaScript: the wrapper ships in the markup and CSS animates
+   it, so it survives JS being disabled.
+
+### Method notes (phase 2)
+
+The first run of the new guards had three failures, all tests-side: a naive
+`split("body {")` returned the *shell* rule instead of the *typography* rule,
+because the stylesheet declares `body` twice, and the parser did not strip block
+comments or split comma-separated selector lists. Both were fixed in the helper
+rather than by loosening the assertions — a guard that passes against the wrong
+block is worse than no guard.
+
+While adding the shell comment, a multi-line `{# #}` was reintroduced by hand in
+`base.html`. The phase-1 leak guard caught it immediately, on every page, which is
+the outcome that guard existed for.
+
+Scroll behaviour is verified **structurally, not visually**: no browser is
+available in this environment, so `100dvh`, `overflow-x: clip`, the removed
+utilities and the wrapper nesting are asserted from the source and the served
+HTML. Visual confirmation of the scrollbar is still outstanding.
+
+### Outstanding
+
+- Visual check of the scrollbar and of both themes in a real browser.
+- `prefers-contrast` and `prefers-reduced-transparency` are implemented and
+  asserted but have not been exercised on a real device.
