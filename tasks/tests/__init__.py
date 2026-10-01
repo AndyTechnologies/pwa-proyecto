@@ -42,12 +42,18 @@ class TaskFactoryTestCase(TestCase):
         self._sequence += 1
         return f"{prefix}-{self._sequence}"
 
-    def make_user(self, username=None, password=STRONG_PASSWORD):
-        """Create an active user with a known password."""
+    def make_user(self, username=None, password=STRONG_PASSWORD, **flags):
+        """Create an active user with a known password.
+
+        Extra model flags (``is_staff``, ``is_superuser``) are passed through,
+        so permission-dependent tests do not have to drop to the ORM.
+        """
         User = get_user_model()
         if username is None:
             username = self._next_label("user")
-        return User.objects.create_user(username=username, password=password)
+        return User.objects.create_user(
+            username=username, password=password, **flags
+        )
 
     def make_tag(self, name, slug=None):
         return Tag.objects.create(name=name, slug=slug)

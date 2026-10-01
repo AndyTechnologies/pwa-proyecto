@@ -59,7 +59,17 @@
             <span class="navbar-text text-body-secondary small">
               Sesión de <strong class="text-body">{{ user.username }}</strong>
             </span>
-            <a class="btn btn-sm btn-outline-secondary" href="{% url 'admin:index' %}">Administrar sitio</a>
+            {% comment %}
+              Sólo el personal del sitio ve este enlace. Un usuario sin
+              privilegios de staff lo encontraba igual, lo pulsaba y Django lo
+              rechazaba con un 302 al login del admin: un callejón sin salida
+              que además le revelaba que el área existe. Ocultarlo es la
+              señal correcta, no un parche de permisos: el acceso real ya lo
+              decide `admin.site` vía UserAdminPermissionRequiredMiddleware.
+            {% endcomment %}
+            {% if user.is_staff %}
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'admin:index' %}">Administrar sitio</a>
+            {% endif %}
             <form class="d-flex" method="post" action="{% url 'logout' %}">
               {% csrf_token %}
               <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Cerrar sesión</button>
