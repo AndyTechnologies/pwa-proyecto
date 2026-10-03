@@ -34,7 +34,7 @@ código fuente: navbar, gate del link de admin, y carga de páginas.
 
 | Commit | Task | Outcome |
 | --- | --- | --- |
-| `b318580` | 1–4 | E2E 6/6 con Firefox; suite Django 330 verdes; control negativo verificado. |
+| `ea9004b` | 1–4 | E2E 6/6 con Firefox; suite Django 330 verdes; control negativo verificado. |
 
 ## Contenido de los tests (6)
 
