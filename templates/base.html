@@ -98,7 +98,8 @@
     elemento más externo extendería el documento y aparecería un scroll en una
     página que no tiene nada que scrollear.
   {% endcomment %}
-  <main class="container py-4 py-lg-5">
+  {# py-4 fijo: py-lg-5 subía el padding a 3rem en >=992px y creaba scrollbar con contenido que cabía. Detalle en odd/tasks/ui-ux-overhaul.md #}
+  <main class="container py-4">
     <div class="apple-enter">
       {% if messages %}
         {% for message in messages %}

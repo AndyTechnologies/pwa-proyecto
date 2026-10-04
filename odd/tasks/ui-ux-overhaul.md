@@ -168,3 +168,26 @@ HTML. Visual confirmation of the scrollbar is still outstanding.
 - Visual check of the scrollbar and of both themes in a real browser.
 - `prefers-contrast` and `prefers-reduced-transparency` are implemented and
   asserted but have not been exercised on a real device.
+
+### Defect 7 — scrollbar aparecía recién sobre 990px (reportado en vivo)
+
+**Síntoma**: con el mismo contenido y la misma página, el scrollbar vertical
+aparecía cuando la ventana superaba ~990px y no aparecía por debajo.
+
+**Causa**: `<main>` llevaba `py-4 py-lg-5`. En el breakpoint `lg` de Bootstrap
+(992px) el padding vertical salta de 24px a 48px por lado: el documento crece
+48px y deja de caber en 100dvh. Reproducido exactamente con 5 tareas: sin
+scroll a 991px, scroll a 993px — mismo contenido, mismo navegador.
+
+**Fix**: `py-4` fijo (`templates/base.html`). La decisión de scrollear pasa a
+depender solo del contenido, nunca del ancho de ventana.
+
+**Guard**: `tests-e2e/scroll_test.py` —
+`test_main_vertical_padding_is_width_independent` pinea que el padding sea
+idéntico en 991 y 993 (falla si alguien reintenta `py-lg-5`), y
+`test_empty_list_has_no_scroll_at_any_width` el contrato original de fase 2.
+Control negativo: reintroducir `py-lg-5` → el guard falla; restaurar → 2/2.
+
+**Método**: diagnóstico medido, no adivinado — un test E2E temporal imprimía
+`scrollHeight`/`paddingTop` en 800/991/993/1280px con cantidades crecientes de
+tareas hasta capturar la asimetría (k=5 fue el punto exacto).
